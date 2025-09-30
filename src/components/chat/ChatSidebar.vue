@@ -323,9 +323,9 @@ import api from '../../api';
 // WebSocket connection for real-time chat sync status
 import { onUnmounted, inject } from 'vue';
 
-const mediaUrl = inject('mediaUrl', 'http://127.0.0.1:8001/');
+const mediaUrl = inject('mediaUrl', 'http://127.0.0.1:8888/');
 
-const socketUrl = inject('socketUrl', 'ws://127.0.0.1:8002/ws/');
+const socketUrl = inject('socketUrl', 'ws://127.0.0.1:6666/ws/');
 
 let socket = null;
 

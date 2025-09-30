@@ -6,7 +6,7 @@ function getCsrfToken() {
     return match ? match[1] : null;
 }
 
-const baseURL = 'http://127.0.0.1:8001/api';
+const baseURL = 'http://127.0.0.1:8888/api';
 
 const api = axios.create({
     baseURL,

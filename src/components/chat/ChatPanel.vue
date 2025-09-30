@@ -240,7 +240,7 @@ import { onUnmounted, inject } from 'vue';
 
 let chatSocket = null;
 
-const socketUrl = inject('socketUrl', 'ws://127.0.0.1:8002/ws/');
+const socketUrl = inject('socketUrl', 'ws://127.0.0.1:6666/ws/');
 
 function setupWebSocket() {
     if (props.chatAccountUser && props.chatAccountUser.id) {
