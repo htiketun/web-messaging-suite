@@ -512,7 +512,7 @@ async function startLogin() {
     loading.value.startLogin = true;
     error.value = '';
     try {
-        const { data } = await api.post('/auth/telegram/start-login', {
+        const { data } = await api.post('/auth/telegram/start-login/', {
             account_id: generatedAccountId,
         });
         generatedAccountId = data.account_id;
@@ -543,6 +543,8 @@ async function startLogin() {
             step.value = 'password';
         } else if (data.status === 'already_logged_in') {
             step.value = 'done';
+        } else if (data.status === 'need_phone') {
+            step.value = 'phone';
         }
     } catch (e) {
         clearTimeout(pollTimer);
@@ -558,7 +560,7 @@ async function startLogin() {
 async function pollLoginStatus() {
     if (pollTimer) clearTimeout(pollTimer);
     try {
-        const { data } = await api.post('/auth/telegram/check-login', {
+        const { data } = await api.post('/auth/telegram/check-login/', {
             account_id: generatedAccountId,
         });
         if (data.status === 'logged_in') {
@@ -604,7 +606,7 @@ async function submitPhone() {
     loading.value.submitPhone = true;
     error.value = '';
     try {
-        const { data } = await api.post('/auth/telegram/submit-phone', {
+        const { data } = await api.post('/auth/telegram/submit-phone/', {
             account_id: generatedAccountId,
             phone: phone.value,
         });
@@ -622,7 +624,7 @@ async function submitCode() {
     loading.value.submitCode = true;
     error.value = '';
     try {
-        const { data } = await api.post('/auth/telegram/submit-code', {
+        const { data } = await api.post('/auth/telegram/submit-code/', {
             account_id: generatedAccountId,
             code: code.value,
         });
@@ -645,7 +647,7 @@ async function submitPassword() {
     loading.value.submitPassword = true;
     error.value = '';
     try {
-        await api.post('/auth/telegram/submit-password', {
+        await api.post('/auth/telegram/submit-password/', {
             account_id: generatedAccountId,
             password: password.value,
         });
@@ -662,7 +664,7 @@ async function submitSignup() {
     loading.value.submitSignup = true;
     error.value = '';
     try {
-        await api.post('/auth/telegram/submit-signup', {
+        await api.post('/auth/telegram/submit-signup/', {
             account_id: generatedAccountId,
             first_name: firstName.value,
             last_name: lastName.value,

@@ -5,32 +5,40 @@
     >
         <!-- Chat Header -->
         <div
-            class="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-10 shadow-sm"
+            class="flex items-center justify-between p-4 border-b bg-white/90 backdrop-bl-md sticky top-0 z-10 shadow"
         >
-            <div class="flex items-center">
-                <img
-                    :src="
-                        user.avatarType === 'base64'
-                            ? `data:image/jpeg;base64,${user.avatar}`
-                            : user.avatar
-                    "
-                    class="w-12 h-12 rounded-full mr-3 border-2 border-blue-400 shadow"
-                />
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <img
+                        :src="
+                            user.avatarType === 'base64'
+                                ? `data:image/jpeg;base64,${user.avatar}`
+                                : user.avatar
+                        "
+                        class="w-12 h-12 rounded-full border-2 border-blue-100 object-cover"
+                        alt="Avatar"
+                    />
+                    <span
+                        v-if="user.is_online"
+                        class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow"
+                        title="Online"
+                    ></span>
+                </div>
                 <div>
                     <div
                         class="font-semibold text-base md:text-lg text-gray-800"
                     >
                         {{ user ? user.name : 'User Name' }}
                     </div>
-                    <div class="text-xs text-green-500 flex items-center gap-1">
-                        <span
-                            class="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"
-                        ></span>
-                        {{ user.last_seen ? user.last_seen : 'online' }}
+                    <div class="text-xs text-gray-500 flex items-center gap-1">
+                        {{ user.last_seen }}
                     </div>
                 </div>
             </div>
-            <button class="p-2 hover:bg-gray-100 rounded-full transition">
+            <button
+                class="p-2 hover:bg-gray-100 rounded-full transition"
+                aria-label="More options"
+            >
                 <svg
                     width="24"
                     height="24"
@@ -46,7 +54,8 @@
         </div>
         <!-- Chat Messages -->
         <div
-            class="flex-1 overflow-y-auto px-1 py-2 sm:px-2 sm:py-4 md:px-6 space-y-4 sm:space-y-6 bg-transparent"
+            ref="messagesContainer"
+            class="flex-1 overflow-y-auto px-2 py-2 sm:px-4 sm:py-4 md:px-8 space-y-4 sm:space-y-6 bg-transparent scroll-smooth"
         >
             <div
                 v-for="msg in messages"
@@ -57,7 +66,7 @@
                 <div class="text-xs text-gray-400 px-2">{{ msg.time }}</div>
                 <div
                     :class="[
-                        'p-3 rounded-2xl shadow max-w-[90vw] sm:max-w-[80vw] md:max-w-lg break-words',
+                        'p-3 rounded-2xl shadow max-w-[80vw] sm:max-w-[60vw] md:max-w-lg break-words',
                         msg.fromMe
                             ? 'bg-blue-500 text-white rounded-br-md'
                             : 'bg-white rounded-bl-md border border-gray-100',
@@ -68,11 +77,12 @@
                 <!-- Attachments -->
                 <div
                     v-if="msg.attachment"
-                    class="flex items-center space-x-2 ml-2 bg-white/80 rounded-lg p-2 shadow border border-gray-100"
+                    class="flex items-center space-x-2 ml-2 bg-white/90 rounded-lg p-2 shadow border border-gray-100"
                 >
                     <img
                         src="https://cdn-icons-png.flaticon.com/512/337/337946.png"
                         class="w-8 h-8"
+                        alt="Attachment"
                     />
                     <div>
                         <div class="font-semibold text-sm">
@@ -95,7 +105,7 @@
         </div>
         <!-- Chat Input -->
         <div
-            class="p-2 sm:p-3 md:p-4 bg-white/90 border-t flex items-center gap-1 sm:gap-2 sticky z-10 backdrop-blur-md"
+            class="p-2 sm:p-3 md:p-4 bg-white/95 border-t flex items-center gap-2 sticky z-10 backdrop-blur-md"
         >
             <!-- Emoji Button -->
             <div class="relative">
@@ -104,6 +114,7 @@
                     title="Add emoji"
                     type="button"
                     @click="showEmojiPicker = !showEmojiPicker"
+                    aria-label="Add emoji"
                 >
                     <span class="text-xl">😊</span>
                 </button>
@@ -120,8 +131,9 @@
             <label
                 class="p-2 rounded-full hover:bg-gray-100 transition cursor-pointer"
                 title="Attach file"
+                aria-label="Attach file"
             >
-                <input type="file" class="hidden" />
+                <input type="file" class="hidden" @change="onFileChange" />
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -143,10 +155,13 @@
                 placeholder="Type your message"
                 class="flex-1 px-4 py-2 rounded-full bg-gray-100 border-none focus:ring-2 focus:ring-blue-300 transition text-sm md:text-base"
                 @keyup.enter="sendMessage"
+                aria-label="Type your message"
+                autocomplete="off"
             />
             <button
                 @click="sendMessage"
-                class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-5 py-2 rounded-full shadow hover:from-blue-600 hover:to-indigo-600 transition font-semibold text-sm md:text-base"
+                :disabled="!input.trim()"
+                class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-5 py-2 rounded-full shadow hover:from-blue-600 hover:to-indigo-600 transition font-semibold text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Send
             </button>
@@ -154,7 +169,7 @@
     </div>
     <div
         v-else
-        class="flex-1 flex items-center justify-center bg-white from-white-100 to-white-200 min-h-screen"
+        class="flex-1 flex items-center justify-center bg-white min-h-screen"
     >
         <div class="text-center px-4">
             <svg
@@ -182,7 +197,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import EmojiPicker from 'vue3-emoji-picker';
 import 'vue3-emoji-picker/css';
 import { useI18n } from 'vue-i18n';
@@ -207,9 +222,10 @@ const props = defineProps({
 const input = ref('');
 const messages = ref([]);
 const showEmojiPicker = ref(false);
+const messagesContainer = ref(null);
 
 function onEmojiSelect(emoji) {
-    input.value += emoji.i; // 'i' is the emoji character
+    input.value += emoji.i;
     showEmojiPicker.value = false;
 }
 
@@ -222,31 +238,34 @@ async function sendMessage() {
                     session_file: props.chatAccountUser.session_file,
                 })
                 .then(() => {
-                    console.log('Message sent successfully');
                     input.value = '';
                 })
                 .catch((error) => {
                     console.error('Error sending message:', error);
                 });
-            input.value = '';
         }
     }
 }
 
-import api from '../../api';
+function onFileChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // You can implement file upload logic here
+        // For better UX, show a loader or preview
+        // Example: show a toast "Uploading file..."
+    }
+}
 
-// WebSocket connection for real-time chat sync status
+import api from '../../api';
 import { onUnmounted, inject } from 'vue';
 
 let chatSocket = null;
-
-const socketUrl = inject('socketUrl', 'ws://127.0.0.1:6666/ws/');
+const socketUrl = inject('socketUrl', 'ws://localhost:8000/ws/');
 
 function setupWebSocket() {
     if (props.chatAccountUser && props.chatAccountUser.id) {
         chatSocket = new WebSocket(`${socketUrl}telegram-messages/`);
         chatSocket.onopen = () => {
-            // Send telegram_account_id for chat sync, include type if available
             const payload = {
                 session_file: props.chatAccountUser.session_file,
                 chat_id: props.chatId,
@@ -258,12 +277,9 @@ function setupWebSocket() {
         };
         chatSocket.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            // Handle status updates (progress, success, error)
-            // Example: show notification or reload chat list
             if (data.status === 'messageSync') {
                 fetchChat();
             }
-            // You can handle 'progress' and 'error' as needed
         };
     }
 }
@@ -281,21 +297,36 @@ async function fetchChat() {
             '/chats/' + props.chatId + '/messages/',
         );
         if (response && response.data) {
-            messages.value = response.data.results.map((message) => ({
-                id: message.id,
-                fromMe: message.chat_id != message.sender_id,
-                text: message.text,
-                time: message.date
-                    ? new Date(message.date).toLocaleString()
-                    : '',
-                attachment: message.attachment,
-            }));
+            const newMessages = response.data.results
+                .map((message) => ({
+                    id: message.id,
+                    fromMe: message.chat_id != message.sender_id,
+                    text: message.text,
+                    time: message.date
+                        ? new Date(message.date).toLocaleString()
+                        : '',
+                    attachment: message.attachment,
+                }))
+                .reverse();
+            // Only scroll if messages changed
+            const isSame =
+                messages.value.length === newMessages.length &&
+                messages.value.every(
+                    (msg, idx) => msg.id === newMessages[idx].id,
+                );
+            messages.value = newMessages;
+            if (!isSame) {
+                await nextTick();
+                if (messagesContainer.value) {
+                    messagesContainer.value.scrollTop =
+                        messagesContainer.value.scrollHeight;
+                }
+            }
         }
     } catch (error) {
         console.error(error);
     }
 }
-import { watch } from 'vue';
 
 watch(
     () => props.chatId,
@@ -317,16 +348,29 @@ watch(
     },
     { immediate: true },
 );
+
+watch(
+    () => messages.value,
+    async () => {
+        await nextTick();
+        if (messagesContainer.value) {
+            messagesContainer.value.scrollTop =
+                messagesContainer.value.scrollHeight;
+        }
+    },
+    { deep: true },
+);
 </script>
 
 <style scoped>
-/* Hide scrollbar for Chrome, Safari and Opera */
 .flex-1::-webkit-scrollbar {
     display: none;
 }
-/* Hide scrollbar for IE, Edge and Firefox */
 .flex-1 {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+input[type='text']:focus {
+    outline: none;
 }
 </style>

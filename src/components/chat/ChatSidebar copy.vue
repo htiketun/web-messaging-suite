@@ -4,6 +4,37 @@
         class="h-full p-4 bg-white flex flex-col shadow-lg w-full md:max-w-sm transition-all duration-300 sm:max-w-full sm:p-2 sm:rounded-none"
     >
         <div class="mb-4 flex flex-col gap-2">
+            <!-- Real-time connection status -->
+            <div class="flex items-center justify-between px-2 py-1">
+                <div class="flex items-center gap-2 text-xs">
+                    <div
+                        class="w-2 h-2 rounded-full"
+                        :class="{
+                            'bg-green-500': isRealtimeConnected,
+                            'bg-red-500': !isRealtimeConnected,
+                        }"
+                        :title="
+                            isRealtimeConnected
+                                ? 'Real-time updates active'
+                                : 'Real-time updates disconnected'
+                        "
+                    ></div>
+                    <span class="text-gray-600">
+                        {{ isRealtimeConnected ? 'Live' : 'Offline' }}
+                    </span>
+                </div>
+                <button
+                    v-if="
+                        !isRealtimeConnected &&
+                        props.chatAccountUser?.session_file
+                    "
+                    @click="setupRealtimeChatListWebSocket()"
+                    class="text-xs text-blue-500 hover:underline"
+                >
+                    Reconnect
+                </button>
+            </div>
+
             <input
                 type="text"
                 :placeholder="t('chat.search_placeholder')"
@@ -61,7 +92,7 @@
                 </button>
             </div>
         </div>
-        <ul class="flex-1 overflow-y-auto space-y-2" ref="chatListContainer">
+        <ul class="flex-1 overflow-y-auto space-y-2">
             <li
                 v-for="user in filteredUsers"
                 :key="user.id"
@@ -288,10 +319,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-const chatListContainer = ref(null);
 
 function formatLastSeen(time) {
     if (!time) return '';
@@ -411,13 +440,15 @@ const filteredUsers = computed(() =>
 
 import api from '../../api';
 // WebSocket connection for real-time chat sync status
-import { onUnmounted, inject } from 'vue';
+import { onUnmounted, inject, onMounted } from 'vue';
 
 const mediaUrl = inject('mediaUrl', 'http://127.0.0.1:8888/');
 
 const socketUrl = inject('socketUrl', 'ws://localhost:8000/ws/');
 
 let socket = null;
+let chatListSocket = null;
+const isRealtimeConnected = ref(false);
 
 function setupWebSocket() {
     if (props.chatAccountUser && props.chatAccountUser.id) {
@@ -442,10 +473,209 @@ function setupWebSocket() {
     }
 }
 
+function setupRealtimeChatListWebSocket() {
+    if (chatListSocket) {
+        chatListSocket.close();
+    }
+
+    if (!props.chatAccountUser?.session_file) {
+        return;
+    }
+
+    isRealtimeConnected.value = false;
+    chatListSocket = new WebSocket(`${socketUrl}chat-list`);
+
+    chatListSocket.onopen = () => {
+        isRealtimeConnected.value = true;
+        console.log('Real-time chat list WebSocket connected');
+
+        // Request initial chat list
+        chatListSocket.send(
+            JSON.stringify({
+                type: 'get_chat_list',
+                session_file: props.chatAccountUser.session_file,
+            }),
+        );
+
+        // Start monitoring for this session
+        startChatListMonitoring();
+    };
+
+    chatListSocket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            console.log('Real-time chat list update:', data);
+
+            if (
+                data.type === 'chat_list_initial' ||
+                data.type === 'chat_list_current'
+            ) {
+                handleChatListUpdate(data.chats);
+            } else if (data.type === 'chat_list_update') {
+                handleSingleChatUpdate(data);
+            } else if (data.type === 'user_status_update') {
+                handleUserStatusUpdate(data);
+            } else if (data.type === 'unread_count_update') {
+                handleUnreadCountUpdate(data);
+            } else if (data.type === 'connection_established') {
+                console.log('Chat list WebSocket connection established');
+            }
+        } catch (error) {
+            console.error('Error parsing chat list WebSocket message:', error);
+        }
+    };
+
+    chatListSocket.onclose = () => {
+        isRealtimeConnected.value = false;
+        console.log('Real-time chat list WebSocket disconnected');
+
+        // Auto-reconnect after 3 seconds
+        setTimeout(() => {
+            if (props.chatAccountUser?.session_file) {
+                setupRealtimeChatListWebSocket();
+            }
+        }, 3000);
+    };
+
+    chatListSocket.onerror = (error) => {
+        console.error('Chat list WebSocket error:', error);
+        isRealtimeConnected.value = false;
+    };
+}
+
+async function startChatListMonitoring() {
+    if (!props.chatAccountUser?.session_file) {
+        return;
+    }
+
+    try {
+        const response = await api.post(
+            '/realtime/start-chat-list-monitoring/',
+            null,
+            {
+                params: { session_file: props.chatAccountUser.session_file },
+            },
+        );
+
+        if (response.data.status === 'success') {
+            console.log('Started chat list monitoring:', response.data);
+        }
+    } catch (error) {
+        console.error('Error starting chat list monitoring:', error);
+    }
+}
+
+async function stopChatListMonitoring() {
+    if (!props.chatAccountUser?.session_file) {
+        return;
+    }
+
+    try {
+        await api.post('/realtime/stop-chat-list-monitoring/', null, {
+            params: { session_file: props.chatAccountUser.session_file },
+        });
+        console.log('Stopped chat list monitoring');
+    } catch (error) {
+        console.error('Error stopping chat list monitoring:', error);
+    }
+}
+
+function handleChatListUpdate(chats) {
+    if (!Array.isArray(chats)) return;
+
+    users.value = chats.map((chat) => ({
+        id: chat.id,
+        name: chat.name || 'Unknown',
+        type: chat.type,
+        unread_count: chat.unread_count || 0,
+        is_pinned: chat.is_pinned || false,
+        is_muted: chat.is_muted || false,
+        last_message: chat.last_message,
+        online_status: chat.online_status,
+        is_online: chat.online_status?.type === 'online',
+        last_seen: chat.online_status?.last_seen
+            ? formatLastSeen(chat.online_status.last_seen)
+            : null,
+        avatar:
+            chat.photo_url ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                chat.name || 'User',
+            )}&background=random&size=128`,
+        avatarType: 'image',
+        // Keep existing fields for compatibility
+        is_active: false,
+        is_favorite: false,
+        last_message_id: chat.last_message?.id,
+        last_message_time: chat.last_message?.date,
+        oldest_message_id: null,
+        oldest_message_time: null,
+        telegram_account_id: props.accountId,
+        username: '',
+        age: '',
+        gender: '',
+    }));
+}
+
+function handleSingleChatUpdate(data) {
+    const chatIndex = users.value.findIndex((user) => user.id === data.chat_id);
+    if (chatIndex !== -1) {
+        // Update existing chat
+        if (data.last_message) {
+            users.value[chatIndex].last_message = data.last_message;
+            users.value[chatIndex].last_message_id = data.last_message.id;
+            users.value[chatIndex].last_message_time = data.last_message.date;
+        }
+
+        // Move chat to top of list for new messages
+        const updatedChat = users.value[chatIndex];
+        users.value.splice(chatIndex, 1);
+        users.value.unshift(updatedChat);
+    }
+}
+
+function handleUserStatusUpdate(data) {
+    const userIndex = users.value.findIndex((user) => user.id === data.user_id);
+    if (userIndex !== -1) {
+        if (data.status) {
+            users.value[userIndex].online_status = data.status;
+            users.value[userIndex].is_online = data.status.type === 'online';
+            users.value[userIndex].last_seen = data.status.last_seen
+                ? formatLastSeen(data.status.last_seen)
+                : null;
+        }
+    }
+}
+
+function handleUnreadCountUpdate(data) {
+    const userIndex = users.value.findIndex((user) => user.id === data.chat_id);
+    if (userIndex !== -1) {
+        // This would need more specific logic based on the read update
+        // For now, we can trigger a refresh of the specific chat
+        console.log('Unread count update for chat:', data.chat_id);
+    }
+}
+
+onMounted(() => {
+    // Initialize real-time chat list WebSocket when component mounts
+    if (props.chatAccountUser?.session_file) {
+        setupRealtimeChatListWebSocket();
+    }
+});
+
 onUnmounted(() => {
     if (socket) {
         socket.close();
         socket = null;
+    }
+
+    if (chatListSocket) {
+        chatListSocket.close();
+        chatListSocket = null;
+    }
+
+    // Stop monitoring when component unmounts
+    if (props.chatAccountUser?.session_file) {
+        stopChatListMonitoring();
     }
 });
 
@@ -455,7 +685,7 @@ async function fetchChatLists() {
             telegram_account_id: props.accountId,
         });
         if (response && response.data) {
-            const newUsers = response.data.map((account) => ({
+            users.value = response.data.map((account) => ({
                 gender: account.gender ?? 'unknown',
                 id: account.id,
                 is_active: account.is_active ?? false,
@@ -481,18 +711,6 @@ async function fetchChatLists() {
                 age: account.age ?? '',
                 gender: account.gender ?? '',
             }));
-
-            const isSame =
-                users.value.length === newUsers.length &&
-                users.value.every((user, idx) => user.id === newUsers[idx].id);
-            users.value = newUsers;
-            if (!isSame) {
-                await nextTick();
-                if (chatListContainer.value) {
-                    chatListContainer.value.scrollTop =
-                        chatListContainer.value.scrollHeight;
-                }
-            }
         }
     } catch (error) {
         console.error(error);
@@ -521,14 +739,30 @@ watch(
     { immediate: true },
 );
 
+// Watch for changes in chat account user for real-time functionality
 watch(
-    () => users.value,
-    async () => {
-        await nextTick();
-        if (usersContainer.value) {
-            usersContainer.value.scrollTop = usersContainer.value.scrollHeight;
+    () => props.chatAccountUser,
+    async (newUser, oldUser) => {
+        if (newUser && newUser !== oldUser) {
+            // Stop previous monitoring
+            if (oldUser?.session_file && chatListSocket) {
+                await stopChatListMonitoring();
+                chatListSocket.close();
+                chatListSocket = null;
+            }
+
+            // Start new monitoring
+            if (newUser.session_file) {
+                setupRealtimeChatListWebSocket();
+            }
+        } else if (!newUser && oldUser) {
+            // User logged out, stop monitoring
+            if (chatListSocket) {
+                await stopChatListMonitoring();
+                chatListSocket.close();
+                chatListSocket = null;
+            }
         }
     },
-    { deep: true },
 );
 </script>

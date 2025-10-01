@@ -142,6 +142,11 @@ export default {
             age_min: 'Min Age',
             age_max: 'Max Age',
             clear_filters: 'Clear Filters',
+            age: 'Age',
+            last_seen: 'Last Seen',
+            no_users_found: 'No users found.',
+            loading: 'Loading...',
+            message_placeholder: 'Type your message here...',
         },
     },
 };

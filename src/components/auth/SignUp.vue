@@ -301,7 +301,7 @@ const register = async () => {
                     email: email.value,
                     password: password.value,
                 })
-                .then((res) => {
+                .then(async (res) => {
                     if (res.status !== 200) {
                         error.value = t('signup.registrationFailed');
                         return;
@@ -314,7 +314,9 @@ const register = async () => {
                     let oldProfile = null;
                     let isOldImage = false;
                     try {
-                        oldProfile = JSON.parse(localStorage.getItem('profile'));
+                        oldProfile = JSON.parse(
+                            localStorage.getItem('profile'),
+                        );
                     } catch (e) {
                         oldProfile = null;
                     }

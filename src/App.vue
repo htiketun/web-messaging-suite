@@ -7,5 +7,5 @@
 <script>
 import { provide } from 'vue';
 provide('mediaUrl', 'http://127.0.0.1:8888/');
-provide('socketUrl', 'ws://127.0.0.1:6666/ws/');
+provide('socketUrl', 'ws://localhost:8000/ws/');
 </script>

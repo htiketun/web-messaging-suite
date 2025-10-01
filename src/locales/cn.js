@@ -138,5 +138,10 @@ export default {
         age_min: '最小年龄',
         age_max: '最大年龄',
         clear_filters: '清除过滤器',
+        age: '年龄',
+        last_seen: '最后在线',
+        no_users_found: '未找到用户。',
+        loading: '加载中...',
+        message_placeholder: '在此输入您的消息...',
     },
 };
