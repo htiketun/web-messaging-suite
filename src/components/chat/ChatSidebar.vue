@@ -296,7 +296,8 @@ const chatListContainer = ref(null);
 function formatLastSeen(time) {
     if (!time) return '';
     const date = new Date(time);
-    if (isNaN(date.getTime())) return time;
+    // If time is not a valid date, just return it as string
+    if (isNaN(date.getTime())) return String(time);
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -312,6 +313,7 @@ function formatLastSeen(time) {
 function isOnline(user) {
     if (!user.last_seen) return false;
     const lastSeenDate = new Date(user.last_seen);
+    if (isNaN(lastSeenDate.getTime())) return String(user.last_seen);
     const now = new Date();
     const diffMs = now - lastSeenDate;
     return diffMs < 2 * 60 * 1000;
