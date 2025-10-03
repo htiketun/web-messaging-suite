@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age & Gender Prediction UI Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+                🤖 AI Age & Gender Prediction UI Demo
+            </h1>
+            
+            <!-- Feature Showcase -->
+            <div class="grid md:grid-cols-2 gap-8">
+                
+                <!-- Bulk Prediction Button Demo -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Bulk AI Prediction Button</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span class="text-sm text-gray-600">Real-time Status:</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span class="text-xs text-gray-600">Live</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Demo Bulk Button -->
+                        <button
+                            @click="bulkPredict"
+                            :disabled="isPredicting"
+                            class="w-full relative text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200 hover:shadow-xl transform hover:scale-105"
+                        >
+                            <svg
+                                v-if="!isPredicting"
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 mr-2 inline"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                />
+                            </svg>
+                            <div
+                                v-else
+                                class="animate-spin h-4 w-4 mr-2 inline border-2 border-white border-t-transparent rounded-full"
+                            ></div>
+                            <span class="font-medium">{{ isPredicting ? 'AI Analyzing...' : '🧠 Predict All with AI' }}</span>
+                        </button>
+                        
+                        <div class="text-xs text-gray-500 text-center">
+                            Uses OpenAI GPT-4 to analyze names, bios, and dates of birth
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Individual Chat Demo -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Individual Chat Prediction</h2>
+                    
+                    <!-- Demo Chat Items -->
+                    <div class="space-y-3">
+                        <div
+                            v-for="user in demoUsers"
+                            :key="user.id"
+                            class="flex items-center p-3 rounded-xl hover:bg-blue-50 border border-gray-200 transition group"
+                        >
+                            <div class="relative mr-3">
+                                <img
+                                    :src="user.avatar"
+                                    class="w-10 h-10 rounded-full border-2 border-blue-100 object-cover"
+                                    :alt="user.name"
+                                />
+                                <span
+                                    v-if="user.is_online"
+                                    class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white rounded-full"
+                                ></span>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-gray-900">{{ user.name }}</div>
+                                <div class="text-xs text-gray-500 flex flex-wrap items-center gap-2 mt-1">
+                                    <!-- Age/Gender display -->
+                                    <span v-if="user.age" class="flex items-center bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+                                        <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="4"></circle>
+                                        </svg>
+                                        {{ user.age }}
+                                    </span>
+                                    
+                                    <span v-if="user.gender" class="flex items-center">
+                                        <svg
+                                            v-if="user.gender === 'male'"
+                                            class="h-3 w-3 mr-1 text-blue-500"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <circle cx="10" cy="14" r="5"></circle>
+                                            <path d="M19 5v4m0-4h-4m4 0l-6 6"></path>
+                                        </svg>
+                                        <svg
+                                            v-else
+                                            class="h-3 w-3 mr-1 text-pink-500"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"></path>
+                                        </svg>
+                                        {{ user.gender }}
+                                    </span>
+                                    
+                                    <!-- AI Prediction Button -->
+                                    <button
+                                        v-if="!user.age || !user.gender"
+                                        @click="predictUser(user)"
+                                        :disabled="isPredictingUser[user.id]"
+                                        class="flex items-center px-2 py-0.5 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 shadow-sm transition-all duration-200 hover:scale-105"
+                                    >
+                                        <svg
+                                            v-if="!isPredictingUser[user.id]"
+                                            class="h-2.5 w-2.5 mr-1"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                        </svg>
+                                        <div
+                                            v-else
+                                            class="animate-spin h-2.5 w-2.5 mr-1 border border-white border-t-transparent rounded-full"
+                                        ></div>
+                                        {{ isPredictingUser[user.id] ? 'AI...' : 'AI' }}
+                                    </button>
+                                    
+                                    <!-- Re-predict Button -->
+                                    <button
+                                        v-else
+                                        @click="predictUser(user)"
+                                        :disabled="isPredictingUser[user.id]"
+                                        class="flex items-center px-1.5 py-0.5 text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full hover:from-amber-500 hover:to-orange-600 disabled:opacity-50 shadow-sm transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-105"
+                                    >
+                                        <svg
+                                            v-if="!isPredictingUser[user.id]"
+                                            class="h-2 w-2 mr-0.5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        <div
+                                            v-else
+                                            class="animate-spin h-2 w-2 mr-0.5 border border-white border-t-transparent rounded-full"
+                                        ></div>
+                                        AI
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Modal Demo -->
+            <div
+                v-if="showResults"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                @click="showResults = false"
+            >
+                <div
+                    class="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto shadow-2xl"
+                    @click.stop
+                >
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <svg
+                                class="h-6 w-6 mr-2 text-purple-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            AI Prediction Results
+                        </h3>
+                        <button
+                            @click="showResults = false"
+                            class="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Summary Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-blue-600">25</div>
+                            <div class="text-sm text-blue-500">Total Chats</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-green-600">18</div>
+                            <div class="text-sm text-green-500">Updated</div>
+                        </div>
+                        <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-yellow-600">23</div>
+                            <div class="text-sm text-yellow-500">Processed</div>
+                        </div>
+                        <div class="bg-red-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-red-600">2</div>
+                            <div class="text-sm text-red-500">Errors</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sample Results -->
+                    <div class="space-y-2">
+                        <h4 class="font-medium text-gray-700 mb-2">Sample Predictions:</h4>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span class="text-sm text-gray-600">John Smith</span>
+                            </div>
+                            <span class="text-sm text-green-600">male, 25-35 <span class="text-xs text-gray-500">(predicted)</span></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span class="text-sm text-gray-600">Sarah Johnson</span>
+                            </div>
+                            <span class="text-sm text-green-600">female, 20-30 <span class="text-xs text-gray-500">(predicted)</span></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <span class="text-sm text-gray-600">Mike Chen</span>
+                            </div>
+                            <span class="text-sm text-red-600">Insufficient data</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Usage Instructions -->
+            <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">🚀 How to Use</h2>
+                <div class="space-y-3 text-sm text-gray-600">
+                    <div class="flex items-start">
+                        <span class="inline-block w-6 h-6 bg-purple-100 text-purple-600 rounded-full text-xs text-center leading-6 mr-3 flex-shrink-0">1</span>
+                        <div>
+                            <strong>Bulk Prediction:</strong> Click the "🧠 Predict All with AI" button to analyze all private chats at once
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="inline-block w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs text-center leading-6 mr-3 flex-shrink-0">2</span>
+                        <div>
+                            <strong>Individual Prediction:</strong> Click the "AI" button next to any chat without age/gender data
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="inline-block w-6 h-6 bg-amber-100 text-amber-600 rounded-full text-xs text-center leading-6 mr-3 flex-shrink-0">3</span>
+                        <div>
+                            <strong>Re-predict:</strong> Hover over chats with existing data to see the orange "AI" re-predict button
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="inline-block w-6 h-6 bg-green-100 text-green-600 rounded-full text-xs text-center leading-6 mr-3 flex-shrink-0">4</span>
+                        <div>
+                            <strong>Results:</strong> View detailed prediction results in the modal that appears after bulk prediction
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+        
+        createApp({
+            setup() {
+                const isPredicting = ref(false);
+                const isPredictingUser = ref({});
+                const showResults = ref(false);
+                
+                const demoUsers = ref([
+                    { id: 1, name: 'John Smith', avatar: 'https://ui-avatars.com/api/?name=John+Smith&background=4f46e5&color=fff', is_online: true, age: '', gender: '' },
+                    { id: 2, name: 'Sarah Johnson', avatar: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=ec4899&color=fff', is_online: false, age: '25-35', gender: 'female' },
+                    { id: 3, name: 'Mike Chen', avatar: 'https://ui-avatars.com/api/?name=Mike+Chen&background=059669&color=fff', is_online: true, age: '', gender: '' },
+                    { id: 4, name: 'Emma Davis', avatar: 'https://ui-avatars.com/api/?name=Emma+Davis&background=dc2626&color=fff', is_online: false, age: '20-30', gender: 'female' }
+                ]);
+                
+                const bulkPredict = async () => {
+                    isPredicting.value = true;
+                    // Simulate API call
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    isPredicting.value = false;
+                    showResults.value = true;
+                };
+                
+                const predictUser = async (user) => {
+                    isPredictingUser.value = { ...isPredictingUser.value, [user.id]: true };
+                    // Simulate API call
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    // Mock prediction results
+                    const genders = ['male', 'female'];
+                    const ages = ['18-25', '25-35', '35-45', '45-55'];
+                    user.gender = genders[Math.floor(Math.random() * genders.length)];
+                    user.age = ages[Math.floor(Math.random() * ages.length)];
+                    
+                    const newState = { ...isPredictingUser.value };
+                    delete newState[user.id];
+                    isPredictingUser.value = newState;
+                };
+                
+                return {
+                    isPredicting,
+                    isPredictingUser,
+                    showResults,
+                    demoUsers,
+                    bulkPredict,
+                    predictUser
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

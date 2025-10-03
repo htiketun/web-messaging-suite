@@ -199,7 +199,7 @@ import { ref, reactive, onMounted } from 'vue';
 import Header from './layout/Header.vue';
 import SidebarMenu from './layout/SidebarMenu.vue';
 import { useI18n } from 'vue-i18n';
-import api from '../api'; // Adjust the path as necessary
+import { api } from '../api'; // Adjust the path as necessary
 const { t } = useI18n();
 
 // To-Do List State

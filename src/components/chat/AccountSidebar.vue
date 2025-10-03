@@ -132,7 +132,7 @@ function selectAccount(user) {
     emit('account-selected', user);
 }
 
-import api from '../../api';
+import { api } from '../../api';
 
 const mediaUrl = inject('mediaUrl', 'http://127.0.0.1:8888/');
 

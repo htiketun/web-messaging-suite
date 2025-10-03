@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import api from '../api';
+import { api } from '../api';
 // Lazy load components for better performance
 const SignUp = () => import('../components/auth/SignUp.vue');
 const Login = () => import('../components/auth/Login.vue');

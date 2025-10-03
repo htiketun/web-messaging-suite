@@ -57,7 +57,7 @@
 </template>
 <script setup>
 import { ref, watch } from 'vue';
-import api from '../api.js';
+import { api } from '../api.js';
 
 const props = defineProps(['account']);
 const chatId = ref('');

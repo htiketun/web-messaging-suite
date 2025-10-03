@@ -147,6 +147,16 @@ export default {
             no_users_found: 'No users found.',
             loading: 'Loading...',
             message_placeholder: 'Type your message here...',
+            prediction_details: 'Recent Predictions',
+            total_chats: 'Total Chats',
+            updated: 'Updated',
+            processed: 'Processed',
+            errors: 'Errors',
+            prediction_results: 'AI Prediction Results',
+            re_predict_with_ai: 'Re-predict with AI',
+            predict_age_gender_with_ai: 'Predict age & gender with AI',
+            predict_age_gender_for_all_chats_with_ai:
+                'Predict age & gender for all chats using AI',
         },
     },
 };

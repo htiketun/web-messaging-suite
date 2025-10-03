@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Locale Test</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-i18n@9/dist/vue-i18n.global.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .language-switcher {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .language-switcher button {
+            margin: 0 10px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .language-switcher button:hover {
+            background: #e9ecef;
+        }
+        .language-switcher button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .translation-item {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+        .translation-key {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 12px;
+            color: #666;
+        }
+        .translation-value {
+            margin-left: 10px;
+            font-weight: 500;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>🌐 Chinese Locale Test</h1>
+            
+            <div class="language-switcher">
+                <button 
+                    @click="setLocale('en')" 
+                    :class="{ active: $i18n.locale === 'en' }"
+                >
+                    English
+                </button>
+                <button 
+                    @click="setLocale('cn')" 
+                    :class="{ active: $i18n.locale === 'cn' }"
+                >
+                    中文 (Chinese)
+                </button>
+                <button 
+                    @click="setLocale('mm')" 
+                    :class="{ active: $i18n.locale === 'mm' }"
+                >
+                    မြန်မာ (Myanmar)
+                </button>
+            </div>
+
+            <div class="status" :class="localeStatus.type">
+                {{ localeStatus.message }}
+            </div>
+
+            <div class="test-section">
+                <h3>🔐 Authentication Translations</h3>
+                <div class="translation-item">
+                    <span class="translation-key">login.title</span>
+                    <span class="translation-value">{{ $t('login.title') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">signup.signupBtn</span>
+                    <span class="translation-value">{{ $t('signup.signupBtn') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">login.loginBtn</span>
+                    <span class="translation-value">{{ $t('login.loginBtn') }}</span>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>💬 Chat Translations</h3>
+                <div class="translation-item">
+                    <span class="translation-key">chat.search_placeholder</span>
+                    <span class="translation-value">{{ $t('chat.search_placeholder') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">chat.male</span>
+                    <span class="translation-value">{{ $t('chat.male') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">chat.female</span>
+                    <span class="translation-value">{{ $t('chat.female') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">chat.predict_age_gender_with_ai</span>
+                    <span class="translation-value">{{ $t('chat.predict_age_gender_with_ai') }}</span>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>🏠 Navigation Translations</h3>
+                <div class="translation-item">
+                    <span class="translation-key">home.account_list</span>
+                    <span class="translation-value">{{ $t('home.account_list') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">header.logout</span>
+                    <span class="translation-value">{{ $t('header.logout') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">profile.title</span>
+                    <span class="translation-value">{{ $t('profile.title') }}</span>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>🤖 AI Features (New)</h3>
+                <div class="translation-item">
+                    <span class="translation-key">chat.prediction_results</span>
+                    <span class="translation-value">{{ $t('chat.prediction_results') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">chat.re_predict_with_ai</span>
+                    <span class="translation-value">{{ $t('chat.re_predict_with_ai') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">chat.predict_age_gender_for_all_chats_with_ai</span>
+                    <span class="translation-value">{{ $t('chat.predict_age_gender_for_all_chats_with_ai') }}</span>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>🔧 Debug Information</h3>
+                <div class="translation-item">
+                    <span class="translation-key">Current Locale</span>
+                    <span class="translation-value">{{ $i18n.locale }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">Available Locales</span>
+                    <span class="translation-value">{{ $i18n.availableLocales.join(', ') }}</span>
+                </div>
+                <div class="translation-item">
+                    <span class="translation-key">Fallback Locale</span>
+                    <span class="translation-value">{{ $i18n.fallbackLocale }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const { createI18n } = VueI18n;
+
+        // Mock translations for testing (simplified versions of your actual files)
+        const messages = {
+            en: {
+                login: { title: 'Welcome Back', loginBtn: 'Login' },
+                signup: { signupBtn: 'Sign Up' },
+                chat: { 
+                    search_placeholder: 'Search chats...', 
+                    male: 'Male', 
+                    female: 'Female',
+                    predict_age_gender_with_ai: 'Predict age & gender with AI',
+                    prediction_results: 'AI Prediction Results',
+                    re_predict_with_ai: 'Re-predict with AI',
+                    predict_age_gender_for_all_chats_with_ai: 'Predict age & gender for all chats using AI'
+                },
+                home: { account_list: 'Account List' },
+                header: { logout: 'Log out' },
+                profile: { title: 'Profile' }
+            },
+            cn: {
+                login: { title: '欢迎回来', loginBtn: '登录' },
+                signup: { signupBtn: '注册' },
+                chat: { 
+                    search_placeholder: '搜索聊天...', 
+                    male: '男性', 
+                    female: '女性',
+                    predict_age_gender_with_ai: '使用AI预测年龄和性别',
+                    prediction_results: 'AI预测结果',
+                    re_predict_with_ai: '使用AI重新预测',
+                    predict_age_gender_for_all_chats_with_ai: '使用AI预测所有聊天的年龄和性别'
+                },
+                home: { account_list: '账户列表' },
+                header: { logout: '退出登录' },
+                profile: { title: '个人资料' }
+            },
+            mm: {
+                login: { title: 'ပြန်လည်ကြိုဆိုပါသည်', loginBtn: 'ဝင်မည်' },
+                signup: { signupBtn: 'စာရင်းသွင်းမည်' },
+                chat: { 
+                    search_placeholder: 'စကားဝှက်ရှာရန်...', 
+                    male: 'ယောက်ျား', 
+                    female: 'မိန်းမ',
+                    predict_age_gender_with_ai: 'AI ဖြင့် အသက်နှင့် လိင်ကို ခန့်မှန်းပါ',
+                    prediction_results: 'AI ခန့်မှန်းမှုရလဒ်များ',
+                    re_predict_with_ai: 'AI ဖြင့် ပြန်လည်ခန့်မှန်းပါ',
+                    predict_age_gender_for_all_chats_with_ai: 'စကားဝှက်အားလုံးအတွက် AI ဖြင့် အသက်နှင့်လိင်ကို ခန့်မှန်းပါ'
+                },
+                home: { account_list: 'အကောင့်စာရင်း' },
+                header: { logout: 'ထွက်မည်' },
+                profile: { title: 'ပရိုဖိုင်' }
+            }
+        };
+
+        const i18n = createI18n({
+            locale: 'en',
+            fallbackLocale: 'en',
+            messages,
+        });
+
+        const app = createApp({
+            data() {
+                return {
+                    localeStatus: {
+                        type: 'success',
+                        message: 'All locales loaded successfully! 🎉'
+                    }
+                };
+            },
+            methods: {
+                setLocale(locale) {
+                    this.$i18n.locale = locale;
+                    this.checkLocaleStatus();
+                },
+                checkLocaleStatus() {
+                    try {
+                        // Test a translation
+                        const testTranslation = this.$t('login.title');
+                        if (testTranslation && testTranslation !== 'login.title') {
+                            this.localeStatus = {
+                                type: 'success',
+                                message: `✅ ${this.$i18n.locale.toUpperCase()} locale is working correctly!`
+                            };
+                        } else {
+                            this.localeStatus = {
+                                type: 'error',
+                                message: `❌ ${this.$i18n.locale.toUpperCase()} locale has issues - translation not found`
+                            };
+                        }
+                    } catch (error) {
+                        this.localeStatus = {
+                            type: 'error',
+                            message: `❌ Error with ${this.$i18n.locale.toUpperCase()} locale: ${error.message}`
+                        };
+                    }
+                }
+            },
+            mounted() {
+                this.checkLocaleStatus();
+            }
+        });
+
+        app.use(i18n);
+        app.mount('#app');
+    </script>
+</body>
+</html>

@@ -255,7 +255,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import api from '../../api';
+import { api } from '../../api';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 

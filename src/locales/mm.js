@@ -149,6 +149,16 @@ export default {
             no_users_found: 'အသုံးပြုသူများမတွေ့ရှိပါ။',
             loading: 'ဖတ်နေသည်...',
             message_placeholder: 'သင်၏စာကိုဤနေရာတွင်ရိုက်ထည့်ပါ...',
+            prediction_details: 'နောက်ဆုံးခန့်မှန်းချက်များ',
+            total_chats: 'စုစုပေါင်းဆွေးနွေးမှုများ',
+            updated: 'အပ်ဒိတ်လုပ်ပြီး',
+            processed: 'လုပ်ဆောင်ပြီး',
+            errors: 'အမှားများ',
+            prediction_results: 'AI ခန့်မှန်းချက်ရလဒ်များ',
+            re_predict_with_ai: 'AI ဖြင့် ပြန်လည်ခန့်မှန်းပါ',
+            predict_age_gender_with_ai: 'AI ဖြင့် အသက်နှင့်လိင်ခန့်မှန်းပါ',
+            predict_age_gender_for_all_chats_with_ai:
+                'AI ဖြင့် အားလုံးသောဆွေးနွေးမှုများအတွက် အသက်နှင့်လိင်ခန့်မှန်းပါ',
         },
     },
 };

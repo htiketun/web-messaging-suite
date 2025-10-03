@@ -55,7 +55,7 @@
 </template>
 <script setup>
 import { ref } from 'vue';
-import api from '../api.js';
+import { api } from '../api.js';
 const emit = defineEmits(['added', 'close']);
 const qrSrc = ref('');
 const polling = ref(false);

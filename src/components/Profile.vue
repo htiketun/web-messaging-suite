@@ -391,7 +391,7 @@ import { ref, reactive, onMounted } from 'vue';
 import Header from './layout/Header.vue';
 import SidebarMenu from './layout/SidebarMenu.vue';
 import { useI18n } from 'vue-i18n';
-import api from '../api';
+import { api } from '../api';
 
 const { t } = useI18n();
 

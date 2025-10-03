@@ -315,7 +315,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../api';
+import { api } from '../../api';
 import { useI18n } from 'vue-i18n';
 
 const dropdownOpen = ref(false);

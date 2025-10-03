@@ -55,7 +55,7 @@ import { ref, onMounted } from 'vue';
 import AddTelegramAccount from './AddTelegramAccount.vue';
 import QRLogin from './QRLogin.vue';
 import ChatWindow from './ChatWindow.vue';
-import api from '../api.js';
+import { api } from '../api.js';
 const accounts = ref([]);
 const showAdd = ref(false);
 const showQR = ref(false);

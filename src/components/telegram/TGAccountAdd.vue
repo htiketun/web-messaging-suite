@@ -431,7 +431,7 @@
 
 <script setup>
 import { ref, onBeforeUnmount, onUnmounted, watch } from 'vue';
-import api from '../../api.js';
+import { api } from '../../api.js';
 const step = ref('account'); // 'account', 'qr', 'phone', 'code', 'password', 'signup', 'done'
 const qrSvg = ref('');
 const expires_at = ref(null);
