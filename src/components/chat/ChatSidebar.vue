@@ -1,167 +1,27 @@
 <template>
-    <aside
+    <div
         v-if="accountId"
-        class="h-full p-4 bg-white flex flex-col shadow-lg w-full md:max-w-sm transition-all duration-300 sm:max-w-full sm:p-2 sm:rounded-none"
+        class="h-full bg-white flex shadow-lg lg:w-4/12 sm:w-full max-w-full transition-all duration-300 border-r border-gray-200"
     >
-        <div class="mb-4 flex flex-col gap-2">
-            <!-- Real-time connection status -->
-            <div class="flex items-center justify-between px-2 py-1">
-                <div class="flex items-center gap-2 text-xs">
-                    <div
-                        class="w-2 h-2 rounded-full"
-                        :class="{
-                            'bg-green-500': isRealtimeConnected,
-                            'bg-red-500': !isRealtimeConnected,
-                        }"
-                        :title="
-                            isRealtimeConnected
-                                ? 'Real-time updates active'
-                                : 'Real-time updates disconnected'
-                        "
-                    ></div>
-                    <span class="text-gray-600">
-                        {{ isRealtimeConnected ? 'Live' : 'Offline' }}
-                    </span>
-                </div>
-                <div class="flex gap-2">
-                    <button
-                        v-if="
-                            !isRealtimeConnected &&
-                            props.chatAccountUser?.session_file
-                        "
-                        @click="setupRealtimeChatListWebSocket()"
-                        class="text-xs text-blue-500 hover:underline"
-                    >
-                        Reconnect
-                    </button>
-                    <button
-                        @click="refreshChatList"
-                        :disabled="isLoading"
-                        class="text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50"
-                        title="Refresh chat list"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                        </svg>
-                    </button>
-                    <button
-                        @click="bulkPredictAgeGender"
-                        :disabled="
-                            isLoading || isPredicting || !isRealtimeConnected
-                        "
-                        class="relative text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
-                        :title="
-                            t('chat.predict_age_gender_for_all_chats_with_ai')
-                        "
-                    >
-                        <svg
-                            v-if="!isPredicting"
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-3 w-3 mr-1 inline"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                            />
-                        </svg>
-                        <div
-                            v-else
-                            class="animate-spin h-3 w-3 mr-1 inline border border-white border-t-transparent rounded-full"
-                        ></div>
-                        <span class="text-xs font-medium">{{
-                            isPredicting ? 'AI...' : 'AI'
-                        }}</span>
-                    </button>
-                </div>
-            </div>
-
-            <input
-                type="text"
-                :placeholder="t('chat.search_placeholder')"
-                class="px-4 py-2 rounded-full bg-gray-100 border-none focus:ring-2 focus:ring-blue-400 outline-none transition"
-                v-model="search"
-            />
-            <div class="flex gap-2 items-center">
-                <select
-                    v-model="genderFilter"
-                    class="rounded px-2 py-1 bg-gray-100 text-sm"
-                >
-                    <option value="">{{ t('chat.all_genders') }}</option>
-                    <option value="male">{{ t('chat.male') }}</option>
-                    <option value="female">{{ t('chat.female') }}</option>
-                </select>
-                <input
-                    type="number"
-                    v-model.number="ageMin"
-                    :placeholder="t('chat.age_min')"
-                    min="0"
-                    class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
-                />
-                <span>-</span>
-                <input
-                    type="number"
-                    v-model.number="ageMax"
-                    :placeholder="t('chat.age_max')"
-                    min="0"
-                    class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
-                />
-                <button
-                    v-if="genderFilter || ageMin || ageMax"
-                    @click="
-                        genderFilter = '';
-                        ageMin = '';
-                        ageMax = '';
-                    "
-                    class="ml-auto text-sm text-red-500 hover:underline"
-                    :title="t('chat.clear_filters')"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
-            </div>
-        </div>
-        <ul class="flex-1 overflow-y-auto space-y-2">
-            <!-- Loading State -->
-            <li v-if="isLoading" class="text-center text-gray-400 py-8">
-                <div
-                    class="animate-spin mx-auto mb-2 w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
-                ></div>
-                <p>Loading chats...</p>
-            </li>
-
-            <!-- Error State -->
-            <li v-else-if="error" class="text-center text-red-400 py-8">
+        <!-- Left Sidebar: Demographic Filters -->
+        <div
+            class="w-16 bg-gray-900 flex flex-col items-center py-4 space-y-4 p-5"
+        >
+            <!-- All Users -->
+            <div
+                @click="setActiveFolder('all')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200',
+                    activeFolder === 'all'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.all_users') || 'All Users'"
+            >
+                <!-- All Users svg -->
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-8 w-8 mx-auto mb-2"
+                    class="h-5 w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -170,158 +30,299 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         stroke-width="2"
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                     />
                 </svg>
-                <p class="mb-2">{{ error }}</p>
-                <button
-                    @click="refreshChatList"
-                    class="text-sm text-blue-500 hover:underline"
-                >
-                    Try Again
-                </button>
-            </li>
+            </div>
 
-            <!-- Chat List -->
-            <li
-                v-for="user in filteredUsers"
-                :key="user.id"
-                class="flex items-center p-3 rounded-xl hover:bg-blue-100 cursor-pointer transition group border border-transparent"
-                :class="
-                    user.id === (selectedChatId && selectedChatId.id)
-                        ? 'bg-blue-100 border-blue-300'
-                        : user.is_active
-                        ? 'bg-blue-50 border-blue-200'
-                        : ''
-                "
-                @click="selectChat(user)"
-                tabindex="0"
-                @keydown.enter="selectChat(user)"
-                aria-label="Open chat with {{ user.name || t('chat.unknown_user') }}"
+            <!-- Male Users -->
+            <div
+                @click="setActiveFolder('male')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'male'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.male_users') || 'Male Users'"
             >
-                <div class="relative mr-3">
-                    <img
-                        :src="
-                            user.avatarType === 'base64'
-                                ? `data:image/jpeg;base64,${user.avatar}`
-                                : user.avatar ||
-                                  'https://ui-avatars.com/api/?name=User&background=random&size=128'
-                        "
-                        class="w-12 h-12 rounded-full border-2 border-blue-100 object-cover bg-gray-100"
-                        :alt="user.name || t('chat.unknown_user')"
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <circle
+                        cx="10"
+                        cy="14"
+                        r="5"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        fill="none"
                     />
-                    <span
-                        v-if="user.is_online"
-                        class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow"
-                        title="Online"
-                    ></span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div
-                        class="text-xs text-gray-500 flex flex-wrap items-center gap-2"
-                    >
-                        <!-- Gender Icon -->
-                        <span
-                            v-if="user.gender"
-                            class="flex items-center"
-                            :title="t(`chat.${user.gender}`)"
-                        >
-                            <svg
-                                v-if="user.gender === 'male'"
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 mr-1 text-blue-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <circle
-                                    cx="10"
-                                    cy="14"
-                                    r="5"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    fill="none"
-                                />
-                                <path
-                                    d="M19 5v4m0-4h-4m4 0l-6 6"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                            <svg
-                                v-else-if="user.gender === 'female'"
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 mr-1 text-pink-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
-                                />
-                            </svg>
-                            <svg
-                                v-else
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 mr-1 text-gray-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="5"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    fill="none"
-                                />
-                            </svg>
-                        </span>
-                        <!-- Age Badge -->
-                        <span
-                            v-if="user.age"
-                            class="flex items-center px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-800 text-xs font-semibold shadow-sm border border-yellow-200"
-                            :title="`${t('chat.age')}: ${user.age}`"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 mr-1 text-gray-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
-                                />
-                            </svg>
-                            {{ user.age }}
-                        </span>
+                    <path
+                        d="M19 5v4m0-4h-4m4 0l-6 6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </div>
 
-                        <!-- Last Seen -->
-                        <!-- AI Prediction Button -->
+            <!-- Female Users -->
+            <div
+                @click="setActiveFolder('female')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'female'
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.female_users') || 'Female Users'"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
+                    />
+                </svg>
+            </div>
+
+            <!-- Young Adults (18-25) -->
+            <div
+                @click="setActiveFolder('young')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'young'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.young_adults') || 'Young Adults (18-25)'"
+            >
+                <div class="text-xs font-bold">18-25</div>
+            </div>
+
+            <!-- Adults (26-35) -->
+            <div
+                @click="setActiveFolder('adult')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'adult'
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.adults') || 'Adults (26-35)'"
+            >
+                <div class="text-xs font-bold">26-35</div>
+            </div>
+
+            <!-- Middle Age (36-50) -->
+            <div
+                @click="setActiveFolder('middle')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'middle'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.middle_age') || 'Middle Age (36-50)'"
+            >
+                <div class="text-xs font-bold">36-50</div>
+            </div>
+
+            <!-- Seniors (51+) -->
+            <div
+                @click="setActiveFolder('senior')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'senior'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.seniors') || 'Seniors (51+)'"
+            >
+                <div class="text-xs font-bold">51+</div>
+            </div>
+
+            <!-- Separator -->
+            <div class="w-8 h-px bg-gray-600 my-2"></div>
+
+            <!-- Favorites -->
+            <div
+                @click="setActiveFolder('favorites')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'favorites'
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.favorites') || 'Favorites'"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    :fill="
+                        activeFolder === 'favorites' ? 'currentColor' : 'none'
+                    "
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                    />
+                </svg>
+            </div>
+
+            <!-- Archive -->
+            <div
+                @click="setActiveFolder('archive')"
+                :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 group relative',
+                    activeFolder === 'archive'
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                ]"
+                :title="t('chat.archive') || 'Archive'"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                    />
+                </svg>
+            </div>
+
+            <!-- Edit Button -->
+            <div class="mt-auto">
+                <div
+                    @click="toggleEditMode"
+                    :class="[
+                        'w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-200 relative',
+                        isEditMode
+                            ? 'bg-orange-500 text-white shadow-lg'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+                    ]"
+                    :title="isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        :class="[
+                            'h-5 w-5 transition-transform duration-200',
+                            isEditMode ? 'rotate-12 scale-110' : '',
+                        ]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
+                    </svg>
+                    <!-- Active indicator dot -->
+                    <div
+                        v-if="isEditMode"
+                        class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-gray-900 animate-pulse"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Content: Chat List -->
+        <div class="flex-1 flex flex-col p-4">
+            <div class="mb-4 flex flex-col gap-2">
+                <!-- Real-time connection status -->
+                <div class="flex items-center justify-between px-2 py-1">
+                    <div class="flex items-center gap-2 text-xs">
+                        <div
+                            class="w-2 h-2 rounded-full"
+                            :class="{
+                                'bg-green-500': isRealtimeConnected,
+                                'bg-red-500': !isRealtimeConnected,
+                            }"
+                            :title="
+                                isRealtimeConnected
+                                    ? 'Real-time updates active'
+                                    : 'Real-time updates disconnected'
+                            "
+                        ></div>
+                        <span class="text-gray-600">
+                            {{ isRealtimeConnected ? 'Live' : 'Offline' }}
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
                         <button
-                            v-if="!user.age || !user.gender"
-                            @click.stop="predictSingleUserAgeGender(user)"
+                            v-if="
+                                !isRealtimeConnected &&
+                                props.chatAccountUser?.session_file
+                            "
+                            @click="setupRealtimeChatListWebSocket()"
+                            class="text-xs text-blue-500 hover:underline"
+                        >
+                            Reconnect
+                        </button>
+                        <button
+                            @click="refreshChatList"
+                            :disabled="isLoading"
+                            class="text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50"
+                            title="Refresh chat list"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            @click="bulkPredictAgeGender"
                             :disabled="
-                                isPredictingUser[user.id] ||
+                                isLoading ||
+                                isPredicting ||
                                 !isRealtimeConnected
                             "
-                            class="flex items-center px-2 py-0.5 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 hover:scale-105"
-                            :title="t('chat.predict_age_gender_with_ai')"
+                            class="relative text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
+                            :title="
+                                t(
+                                    'chat.predict_age_gender_for_all_chats_with_ai',
+                                )
+                            "
                         >
                             <svg
-                                v-if="!isPredictingUser[user.id]"
+                                v-if="!isPredicting"
                                 xmlns="http://www.w3.org/2000/svg"
-                                class="h-2.5 w-2.5 mr-1"
+                                class="h-3 w-3 mr-1 inline"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -335,121 +336,657 @@
                             </svg>
                             <div
                                 v-else
-                                class="animate-spin h-2.5 w-2.5 mr-1 border border-white border-t-transparent rounded-full"
+                                class="animate-spin h-3 w-3 mr-1 inline border border-white border-t-transparent rounded-full"
                             ></div>
                             <span class="text-xs font-medium">{{
-                                isPredictingUser[user.id] ? 'AI...' : 'AI'
+                                isPredicting ? 'AI...' : 'AI'
                             }}</span>
                         </button>
-
-                        <!-- Re-predict Button (shown on hover for users with existing data) -->
-                        <button
-                            v-else-if="user.age && user.gender"
-                            @click.stop="predictSingleUserAgeGender(user)"
-                            :disabled="
-                                isPredictingUser[user.id] ||
-                                !isRealtimeConnected
-                            "
-                            class="flex items-center px-1.5 py-0.5 text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full hover:from-amber-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 opacity-0 group-hover:opacity-100 hover:scale-105"
-                            :title="t('chat.re_predict_with_ai')"
-                        >
-                            <svg
-                                v-if="!isPredictingUser[user.id]"
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-2 w-2 mr-0.5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                />
-                            </svg>
-                            <div
-                                v-else
-                                class="animate-spin h-2 w-2 mr-0.5 border border-white border-t-transparent rounded-full"
-                            ></div>
-                            <span class="text-xs font-medium">{{
-                                isPredictingUser[user.id] ? '...' : 'AI'
-                            }}</span>
-                        </button>
-                        <span
-                            v-if="user.last_seen"
-                            class="flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium shadow-sm ml-auto"
-                            :title="t('chat.last_seen')"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-3 w-3 mr-1 text-green-400"
-                                fill="none"
-                                viewBox="0 0 20 20"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 8V5a1 1 0 10-2 0v5a1 1 0 00.293.707l3 3a1 1 0 101.414-1.414l-2.707-2.707z"
-                                />
-                            </svg>
-                            {{ user.last_seen }}
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between mt-1">
-                        <div class="font-semibold truncate text-gray-900">
-                            {{ user.name || t('chat.unknown_user') }}
-                        </div>
-                        <div
-                            v-if="user.last_message_time"
-                            class="text-xs text-gray-400 ml-2 whitespace-nowrap"
-                        >
-                            {{ formatTime(user.last_message_time) }}
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between mt-1">
-                        <span
-                            class="text-xs text-gray-500 truncate flex items-center"
-                            v-if="user.last_message && user.last_message.text"
-                        >
-                            {{ user.last_message.text }}
-                        </span>
-                        <span
-                            v-if="user.unread_count && user.unread_count > 0"
-                            class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full ml-2 min-w-[2rem] text-center font-bold shadow"
-                        >
-                            {{ user.unread_count }}
-                        </span>
                     </div>
                 </div>
-            </li>
-            <li
-                v-if="!isLoading && !error && filteredUsers.length === 0"
-                class="text-center text-gray-400 py-8"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-8 w-8 mx-auto mb-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+
+                <input
+                    type="text"
+                    :placeholder="t('chat.search_placeholder')"
+                    class="px-4 py-2 rounded-full bg-gray-100 border-none focus:ring-2 focus:ring-blue-400 outline-none transition"
+                    v-model="search"
+                />
+                <div
+                    class="flex gap-2 items-center"
+                    v-if="activeFolder === 'all'"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                    <select
+                        v-model="genderFilter"
+                        class="rounded px-2 py-1 bg-gray-100 text-sm"
+                    >
+                        <option value="">{{ t('chat.all_genders') }}</option>
+                        <option value="male">{{ t('chat.male') }}</option>
+                        <option value="female">{{ t('chat.female') }}</option>
+                    </select>
+                    <input
+                        type="number"
+                        v-model.number="ageMin"
+                        :placeholder="t('chat.age_min')"
+                        min="0"
+                        class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
                     />
-                </svg>
-                {{ t('chat.no_users_found') }}
-            </li>
-        </ul>
-    </aside>
-    <aside
+                    <span>-</span>
+                    <input
+                        type="number"
+                        v-model.number="ageMax"
+                        :placeholder="t('chat.age_max')"
+                        min="0"
+                        class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
+                    />
+                    <button
+                        v-if="
+                            genderFilter ||
+                            ageMin ||
+                            ageMax ||
+                            onlineFilter ||
+                            activeFilter ||
+                            lastSeenFilter
+                        "
+                        @click="clearAllFilters"
+                        class="ml-auto text-sm text-red-500 hover:underline"
+                        :title="t('chat.clear_filters')"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat List Content Based on Active Folder -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="mb-2 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            {{ getFolderTitle(activeFolder) }}
+                        </h2>
+                        <span
+                            v-if="isEditMode"
+                            class="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full font-medium border border-orange-200"
+                        >
+                            {{ t('chat.edit_mode') }}
+                        </span>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                        {{ getDisplayedChats().length }}
+                        {{
+                            getDisplayedChats().length === 1 ? 'chat' : 'chats'
+                        }}
+                    </span>
+                </div>
+
+                <ul class="flex-1 overflow-y-auto space-y-1">
+                    <!-- Loading State -->
+                    <li v-if="isLoading" class="text-center text-gray-400 py-8">
+                        <div
+                            class="animate-spin mx-auto mb-2 w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+                        ></div>
+                        <p>Loading chats...</p>
+                    </li>
+
+                    <!-- Error State -->
+                    <li v-else-if="error" class="text-center text-red-400 py-8">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-8 w-8 mx-auto mb-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <p class="mb-2">{{ error }}</p>
+                        <button
+                            @click="refreshChatList"
+                            class="text-sm text-blue-500 hover:underline"
+                        >
+                            Try Again
+                        </button>
+                    </li>
+
+                    <!-- Chat List -->
+                    <li
+                        v-for="chat in getDisplayedChats()"
+                        :key="chat.id"
+                        class="flex items-center p-3 rounded-xl hover:bg-blue-100 cursor-pointer transition group border border-transparent"
+                        :class="
+                            chat.id === (selectedChatId && selectedChatId.id)
+                                ? 'bg-blue-100 border-blue-300'
+                                : chat.is_active
+                                ? 'bg-blue-50 border-blue-200'
+                                : ''
+                        "
+                        @click="selectChat(chat)"
+                        tabindex="0"
+                        @keydown.enter="selectChat(chat)"
+                        aria-label="Open chat with {{ chat.name || t('chat.unknown_user') }}"
+                    >
+                        <div class="relative mr-3">
+                            <!-- Avatar for individual users -->
+                            <img
+                                v-if="
+                                    chat.type === 'private' ||
+                                    chat.type === 'user' ||
+                                    !chat.type
+                                "
+                                :src="
+                                    chat.avatarType === 'base64'
+                                        ? `data:image/jpeg;base64,${chat.avatar}`
+                                        : chat.avatar ||
+                                          'https://ui-avatars.com/api/?name=User&background=random&size=128'
+                                "
+                                class="w-12 h-12 rounded-full border-2 border-blue-100 object-cover bg-gray-100"
+                                :alt="chat.name || t('chat.unknown_user')"
+                            />
+                            <!-- Icon for groups -->
+                            <div
+                                v-else
+                                class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-6 w-6 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <span
+                                v-if="chat.is_online"
+                                class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow"
+                                title="Online"
+                            ></span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div
+                                class="text-xs text-gray-500 flex flex-wrap items-center gap-2"
+                            >
+                                <!-- Gender Icon -->
+                                <span
+                                    v-if="chat.gender"
+                                    class="flex items-center"
+                                    :title="t(`chat.${chat.gender}`)"
+                                >
+                                    <svg
+                                        v-if="chat.gender === 'male'"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1 text-blue-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <circle
+                                            cx="10"
+                                            cy="14"
+                                            r="5"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            fill="none"
+                                        />
+                                        <path
+                                            d="M19 5v4m0-4h-4m4 0l-6 6"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        />
+                                    </svg>
+                                    <svg
+                                        v-else-if="chat.gender === 'female'"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1 text-pink-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
+                                        />
+                                    </svg>
+                                    <svg
+                                        v-else
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1 text-gray-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <circle
+                                            cx="12"
+                                            cy="12"
+                                            r="5"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            fill="none"
+                                        />
+                                    </svg>
+                                </span>
+                                <!-- Age Badge -->
+                                <span
+                                    v-if="chat.age"
+                                    class="flex items-center px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-800 text-xs font-semibold shadow-sm border border-yellow-200"
+                                    :title="`${t('chat.age')}: ${chat.age}`"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1 text-gray-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
+                                        />
+                                    </svg>
+                                    {{ chat.age }}
+                                </span>
+
+                                <!-- Last Seen -->
+                                <!-- AI Prediction Button -->
+                                <button
+                                    v-if="
+                                        (!chat.age || !chat.gender) &&
+                                        (chat.type === 'private' ||
+                                            chat.type === 'user' ||
+                                            !chat.type)
+                                    "
+                                    @click.stop="
+                                        predictSingleUserAgeGender(chat)
+                                    "
+                                    :disabled="
+                                        isPredictingUser[chat.id] ||
+                                        !isRealtimeConnected
+                                    "
+                                    class="flex items-center px-2 py-0.5 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 hover:scale-105"
+                                    :title="
+                                        t('chat.predict_age_gender_with_ai')
+                                    "
+                                >
+                                    <svg
+                                        v-if="!isPredictingUser[chat.id]"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-2.5 w-2.5 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                        />
+                                    </svg>
+                                    <div
+                                        v-else
+                                        class="animate-spin h-2.5 w-2.5 mr-1 border border-white border-t-transparent rounded-full"
+                                    ></div>
+                                    <span class="text-xs font-medium">{{
+                                        isPredictingUser[chat.id]
+                                            ? 'AI...'
+                                            : 'AI'
+                                    }}</span>
+                                </button>
+
+                                <!-- Re-predict Button (shown on hover for users with existing data) -->
+                                <button
+                                    v-else-if="
+                                        chat.age &&
+                                        chat.gender &&
+                                        (chat.type === 'private' ||
+                                            chat.type === 'user' ||
+                                            !chat.type)
+                                    "
+                                    @click.stop="
+                                        predictSingleUserAgeGender(chat)
+                                    "
+                                    :disabled="
+                                        isPredictingUser[chat.id] ||
+                                        !isRealtimeConnected
+                                    "
+                                    class="flex items-center px-1.5 py-0.5 text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full hover:from-amber-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 opacity-0 group-hover:opacity-100 hover:scale-105"
+                                    :title="t('chat.re_predict_with_ai')"
+                                >
+                                    <svg
+                                        v-if="!isPredictingUser[chat.id]"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-2 w-2 mr-0.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        />
+                                    </svg>
+                                    <div
+                                        v-else
+                                        class="animate-spin h-2 w-2 mr-0.5 border border-white border-t-transparent rounded-full"
+                                    ></div>
+                                    <span class="text-xs font-medium">{{
+                                        isPredictingUser[chat.id] ? '...' : 'AI'
+                                    }}</span>
+                                </button>
+
+                                <!-- Edit Mode Controls -->
+                                <div
+                                    v-if="isEditMode"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <button
+                                        @click.stop="toggleFavorite(chat)"
+                                        :disabled="loadingFavorite[chat.id]"
+                                        :class="[
+                                            'group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
+                                            chat.is_favorite
+                                                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-md hover:from-yellow-500 hover:to-amber-600 hover:shadow-lg'
+                                                : 'bg-white text-gray-600 border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 hover:text-yellow-600 shadow-sm',
+                                        ]"
+                                        :title="
+                                            loadingFavorite[chat.id]
+                                                ? 'Updating...'
+                                                : chat.is_favorite
+                                                ? 'Remove from favorites'
+                                                : 'Add to favorites'
+                                        "
+                                    >
+                                        <div
+                                            v-if="loadingFavorite[chat.id]"
+                                            class="animate-spin h-3.5 w-3.5 border border-current border-t-transparent rounded-full"
+                                        ></div>
+                                        <svg
+                                            v-else
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            :class="[
+                                                'h-3.5 w-3.5 transition-all duration-300',
+                                                chat.is_favorite
+                                                    ? 'text-white scale-110'
+                                                    : 'text-gray-500 group-hover:text-yellow-500',
+                                            ]"
+                                            :fill="
+                                                chat.is_favorite
+                                                    ? 'currentColor'
+                                                    : 'none'
+                                            "
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            :stroke-width="
+                                                chat.is_favorite ? '0' : '2'
+                                            "
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                                            />
+                                        </svg>
+                                        <span class="hidden sm:inline">
+                                            {{
+                                                loadingFavorite[chat.id]
+                                                    ? 'Updating...'
+                                                    : chat.is_favorite
+                                                    ? 'Favorited'
+                                                    : 'Favorite'
+                                            }}
+                                        </span>
+                                    </button>
+                                    <button
+                                        @click.stop="markAsRead(chat)"
+                                        v-if="
+                                            chat.unread_count &&
+                                            chat.unread_count > 0
+                                        "
+                                        :disabled="loadingMarkRead[chat.id]"
+                                        class="group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-md hover:from-blue-600 hover:to-cyan-700 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                                        :title="
+                                            loadingMarkRead[chat.id]
+                                                ? 'Marking as read...'
+                                                : 'Mark as read'
+                                        "
+                                    >
+                                        <div
+                                            v-if="loadingMarkRead[chat.id]"
+                                            class="animate-spin h-3.5 w-3.5 border border-white border-t-transparent rounded-full"
+                                        ></div>
+                                        <svg
+                                            v-else
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-3.5 w-3.5 text-white transition-all duration-300"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M5 13l4 4L19 7"
+                                            />
+                                        </svg>
+                                        <span class="hidden sm:inline">
+                                            {{
+                                                loadingMarkRead[chat.id]
+                                                    ? 'Reading...'
+                                                    : 'Mark Read'
+                                            }}
+                                        </span>
+                                    </button>
+                                    <button
+                                        @click.stop="archiveChat(chat)"
+                                        :disabled="loadingArchive[chat.id]"
+                                        :class="[
+                                            'group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
+                                            chat.is_archived
+                                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md hover:from-indigo-600 hover:to-purple-700 hover:shadow-lg'
+                                                : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 shadow-sm',
+                                        ]"
+                                        :title="
+                                            loadingArchive[chat.id]
+                                                ? 'Updating...'
+                                                : chat.is_archived
+                                                ? 'Unarchive chat'
+                                                : 'Archive chat'
+                                        "
+                                    >
+                                        <div
+                                            v-if="loadingArchive[chat.id]"
+                                            class="animate-spin h-3.5 w-3.5 border border-current border-t-transparent rounded-full"
+                                        ></div>
+                                        <svg
+                                            v-else
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            :class="[
+                                                'h-3.5 w-3.5 transition-all duration-300',
+                                                chat.is_archived
+                                                    ? 'text-white'
+                                                    : 'text-gray-500 group-hover:text-indigo-500',
+                                            ]"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+                                            />
+                                        </svg>
+                                        <span class="hidden sm:inline">
+                                            {{
+                                                loadingArchive[chat.id]
+                                                    ? 'Updating...'
+                                                    : chat.is_archived
+                                                    ? 'Archived'
+                                                    : 'Archive'
+                                            }}
+                                        </span>
+                                    </button>
+                                </div>
+                                <span
+                                    v-if="
+                                        chat.last_seen &&
+                                        (chat.type === 'private' ||
+                                            chat.type === 'user' ||
+                                            !chat.type)
+                                    "
+                                    class="flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium shadow-sm ml-auto"
+                                    :title="t('chat.last_seen')"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-3 w-3 mr-1 text-green-400"
+                                        fill="none"
+                                        viewBox="0 0 20 20"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 8V5a1 1 0 10-2 0v5a1 1 0 00.293.707l3 3a1 1 0 101.414-1.414l-2.707-2.707z"
+                                        />
+                                    </svg>
+                                    {{ chat.last_seen }}
+                                </span>
+                                <!-- Member count for groups -->
+                                <span
+                                    v-if="
+                                        chat.member_count &&
+                                        (chat.type === 'group' ||
+                                            chat.type === 'supergroup' ||
+                                            chat.type === 'channel')
+                                    "
+                                    class="flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium shadow-sm ml-auto"
+                                    :title="t('chat.members')"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-3 w-3 mr-1 text-blue-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                        />
+                                    </svg>
+                                    {{ chat.member_count }}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <div
+                                    class="font-semibold truncate text-gray-900"
+                                >
+                                    {{
+                                        chat.name ||
+                                        (chat.type === 'group' ||
+                                        chat.type === 'supergroup' ||
+                                        chat.type === 'channel'
+                                            ? t('chat.unknown_group')
+                                            : t('chat.unknown_user'))
+                                    }}
+                                </div>
+                                <div
+                                    v-if="chat.last_message_time"
+                                    class="text-xs text-gray-400 ml-2 whitespace-nowrap"
+                                >
+                                    {{ formatTime(chat.last_message_time) }}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <span
+                                    class="text-xs text-gray-500 truncate flex items-center"
+                                    v-if="
+                                        chat.last_message &&
+                                        chat.last_message.text
+                                    "
+                                >
+                                    {{ chat.last_message.text }}
+                                </span>
+                                <span
+                                    v-if="
+                                        chat.unread_count &&
+                                        chat.unread_count > 0
+                                    "
+                                    class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full ml-2 min-w-[2rem] text-center font-bold shadow"
+                                >
+                                    {{ chat.unread_count }}
+                                </span>
+                            </div>
+                        </div>
+                    </li>
+                    <li
+                        v-if="
+                            !isLoading &&
+                            !error &&
+                            getDisplayedChats().length === 0
+                        "
+                        class="text-center text-gray-400 py-6"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-6 w-6 mx-auto mb-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            />
+                        </svg>
+                        <p class="text-xs">{{ getEmptyStateMessage() }}</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div
         v-else
-        class="h-full p-4 bg-white flex flex-col shadow-lg max-w-xs w-full md:max-w-sm transition-all duration-300 sm:max-w-full sm:p-2 sm:rounded-none"
+        class="h-full p-4 bg-white shadow-lg lg:w-4/12 sm:w-full max-w-full transition-all duration-300 sm:p-2 sm:rounded-none border-r border-gray-200"
     >
         <div
             class="flex flex-col items-center justify-center h-full text-center text-gray-500"
@@ -473,7 +1010,7 @@
             </p>
             <p class="mt-2 text-sm">{{ t('chat.select_account') }}</p>
         </div>
-    </aside>
+    </div>
 
     <!-- AI Prediction Results Modal -->
     <div
@@ -677,6 +1214,7 @@ function selectChat(user) {
 
 const search = ref('');
 const users = ref([]);
+const groups = ref([]);
 const isLoading = ref(false);
 const error = ref(null);
 
@@ -684,12 +1222,29 @@ const error = ref(null);
 const genderFilter = ref('');
 const ageMin = ref('');
 const ageMax = ref('');
+const onlineFilter = ref('');
+const activeFilter = ref('');
+const lastSeenFilter = ref('');
 
 // Age/Gender prediction states
 const isPredicting = ref(false);
 const isPredictingUser = ref({});
 const predictionResults = ref(null);
 const showPredictionModal = ref(false);
+
+// Folder system states
+const activeFolder = ref('all');
+const isEditMode = ref(false);
+const loadingFavorite = ref({});
+const loadingArchive = ref({});
+const loadingMarkRead = ref({});
+
+// Computed properties for unread count
+const unreadCount = computed(() => {
+    return [...users.value, ...groups.value].reduce((total, chat) => {
+        return total + (chat.unread_count || 0);
+    }, 0);
+});
 
 // Filtered users with gender and age range
 const filteredUsers = computed(() =>
@@ -735,10 +1290,386 @@ const filteredUsers = computed(() =>
     }),
 );
 
+// Filtered groups with gender and age filters
+const filteredGroups = computed(() =>
+    groups.value.filter((group) => {
+        // Search filter for groups
+        if (
+            search.value &&
+            !group.name.toLowerCase().includes(search.value.toLowerCase())
+        ) {
+            return false;
+        }
+
+        // Gender filter for groups
+        if (genderFilter.value && group.gender !== genderFilter.value) {
+            return false;
+        }
+
+        // Age filter for groups
+        // Handle age as a single number or a range string like "20 - 30"
+        let ageMinGroup = null;
+        let ageMaxGroup = null;
+        if (typeof group.age === 'string' && group.age.includes('-')) {
+            const [minStr, maxStr] = group.age.split('-').map((s) => s.trim());
+            ageMinGroup = Number(minStr);
+            ageMaxGroup = Number(maxStr);
+        } else {
+            const ageNum = Number(group.age);
+            if (!isNaN(ageNum)) {
+                ageMinGroup = ageMaxGroup = ageNum;
+            }
+        }
+        if (
+            ageMin.value !== '' &&
+            (ageMaxGroup === null || ageMaxGroup < ageMin.value)
+        ) {
+            return false;
+        }
+        if (
+            ageMax.value !== '' &&
+            (ageMinGroup === null || ageMinGroup > ageMax.value)
+        ) {
+            return false;
+        }
+
+        return true;
+    }),
+);
+
 import { api, socketApi } from '../../api';
 // WebSocket connection for real-time chat sync status
 import { onUnmounted, inject, onMounted } from 'vue';
 
+// Folder management functions
+function setActiveFolder(folder) {
+    activeFolder.value = folder;
+}
+
+function toggleEditMode() {
+    isEditMode.value = !isEditMode.value;
+    console.log('Edit mode toggled:', isEditMode.value);
+
+    // You can add additional functionality here, such as:
+    // - Show/hide additional UI elements
+    // - Enable/disable certain features
+    // - Change the behavior of other components
+}
+
+function getFolderTitle(folder) {
+    const titles = {
+        all: t('chat.all_users') || 'All Users',
+        male: t('chat.male_users') || 'Male Users',
+        female: t('chat.female_users') || 'Female Users',
+        young: t('chat.young_adults') || 'Young Adults (18-25)',
+        adult: t('chat.adults') || 'Adults (26-35)',
+        middle: t('chat.middle_age') || 'Middle Age (36-50)',
+        senior: t('chat.seniors') || 'Seniors (51+)',
+        favorites: t('chat.favorites') || 'Favorites',
+        archive: t('chat.archive') || 'Archive',
+        folders: t('chat.folders') || 'Folders',
+    };
+    return titles[folder] || 'All Users';
+}
+
+function getDisplayedChats() {
+    const allChats = [...users.value, ...groups.value];
+
+    // Apply search filter first
+    let filteredChats = allChats.filter((chat) => {
+        if (
+            search.value &&
+            !chat.name.toLowerCase().includes(search.value.toLowerCase())
+        ) {
+            return false;
+        }
+        return true;
+    });
+
+    // Apply folder filter based on demographics
+    switch (activeFolder.value) {
+        case 'male':
+            filteredChats = filteredChats.filter(
+                (chat) => chat.gender === 'male',
+            );
+            break;
+        case 'female':
+            filteredChats = filteredChats.filter(
+                (chat) => chat.gender === 'female',
+            );
+            break;
+        case 'young':
+            filteredChats = filteredChats.filter((chat) => {
+                const age = parseInt(chat.age);
+                return age >= 18 && age <= 25;
+            });
+            break;
+        case 'adult':
+            filteredChats = filteredChats.filter((chat) => {
+                const age = parseInt(chat.age);
+                return age >= 26 && age <= 35;
+            });
+            break;
+        case 'middle':
+            filteredChats = filteredChats.filter((chat) => {
+                const age = parseInt(chat.age);
+                return age >= 36 && age <= 50;
+            });
+            break;
+        case 'senior':
+            filteredChats = filteredChats.filter((chat) => {
+                const age = parseInt(chat.age);
+                return age >= 51;
+            });
+            break;
+        case 'favorites':
+            filteredChats = filteredChats.filter((chat) => chat.is_favorite);
+            break;
+        case 'archive':
+            filteredChats = filteredChats.filter((chat) => chat.is_archived);
+            break;
+        case 'folders':
+            filteredChats = filteredChats.filter((chat) => chat.folder_id);
+            break;
+        case 'all':
+        default:
+            // Show all chats
+            break;
+    }
+
+    // Apply gender and age filters
+    return filteredChats.filter((chat) => {
+        // Gender filter
+        if (genderFilter.value && chat.gender !== genderFilter.value) {
+            return false;
+        }
+
+        // Age filter
+        let ageMinChat = null;
+        let ageMaxChat = null;
+        if (typeof chat.age === 'string' && chat.age.includes('-')) {
+            const [minStr, maxStr] = chat.age.split('-').map((s) => s.trim());
+            ageMinChat = Number(minStr);
+            ageMaxChat = Number(maxStr);
+        } else {
+            const ageNum = Number(chat.age);
+            if (!isNaN(ageNum)) {
+                ageMinChat = ageMaxChat = ageNum;
+            }
+        }
+        if (
+            ageMin.value !== '' &&
+            (ageMaxChat === null || ageMaxChat < ageMin.value)
+        ) {
+            return false;
+        }
+        if (
+            ageMax.value !== '' &&
+            (ageMinChat === null || ageMinChat > ageMax.value)
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+function getEmptyStateMessage() {
+    const messages = {
+        all: t('chat.no_users_found') || 'No users found',
+        male: t('chat.no_male_users') || 'No male users found',
+        female: t('chat.no_female_users') || 'No female users found',
+        young: t('chat.no_young_adults') || 'No young adults (18-25) found',
+        adult: t('chat.no_adults') || 'No adults (26-35) found',
+        middle: t('chat.no_middle_age') || 'No middle age users (36-50) found',
+        senior: t('chat.no_seniors') || 'No seniors (51+) found',
+        favorites: t('chat.no_favorites') || 'No favorite chats found',
+        archive: t('chat.no_archived') || 'No archived chats found',
+        folders: t('chat.no_folders') || 'No organized folders found',
+    };
+    return messages[activeFolder.value] || 'No users found';
+}
+
+function clearAllFilters() {
+    genderFilter.value = '';
+    ageMin.value = '';
+    ageMax.value = '';
+    onlineFilter.value = '';
+    activeFilter.value = '';
+    lastSeenFilter.value = '';
+    search.value = '';
+}
+
+// Local Storage utility functions
+function getFavoritesFromStorage() {
+    try {
+        const favorites = localStorage.getItem('chat_favorites');
+        return favorites ? JSON.parse(favorites) : {};
+    } catch (error) {
+        console.error('Error loading favorites from localStorage:', error);
+        return {};
+    }
+}
+
+function saveFavoritesToStorage(favorites) {
+    try {
+        localStorage.setItem('chat_favorites', JSON.stringify(favorites));
+    } catch (error) {
+        console.error('Error saving favorites to localStorage:', error);
+    }
+}
+
+function getArchivedFromStorage() {
+    try {
+        const archived = localStorage.getItem('chat_archived');
+        return archived ? JSON.parse(archived) : {};
+    } catch (error) {
+        console.error('Error loading archived chats from localStorage:', error);
+        return {};
+    }
+}
+
+function saveArchivedToStorage(archived) {
+    try {
+        localStorage.setItem('chat_archived', JSON.stringify(archived));
+    } catch (error) {
+        console.error('Error saving archived chats to localStorage:', error);
+    }
+}
+
+function updateChatFavoriteStatus(chatId, isFavorite) {
+    const favorites = getFavoritesFromStorage();
+    if (isFavorite) {
+        favorites[chatId] = true;
+    } else {
+        delete favorites[chatId];
+    }
+    saveFavoritesToStorage(favorites);
+}
+
+function updateChatArchiveStatus(chatId, isArchived) {
+    const archived = getArchivedFromStorage();
+    if (isArchived) {
+        archived[chatId] = true;
+    } else {
+        delete archived[chatId];
+    }
+    saveArchivedToStorage(archived);
+}
+
+function applyStoredStates(chats) {
+    const favorites = getFavoritesFromStorage();
+    const archived = getArchivedFromStorage();
+
+    return chats.map((chat) => ({
+        ...chat,
+        is_favorite: favorites[chat.id] || false,
+        is_archived: archived[chat.id] || false,
+    }));
+}
+
+// Edit mode functions
+async function toggleFavorite(chat) {
+    console.log('Toggling favorite for chat:', chat.name);
+
+    // Set loading state
+    loadingFavorite.value[chat.id] = true;
+
+    try {
+        // Add a small delay for better visual feedback
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Toggle favorite status
+        chat.is_favorite = !chat.is_favorite;
+
+        // Save to local storage
+        updateChatFavoriteStatus(chat.id, chat.is_favorite);
+
+        console.log(
+            `Chat ${chat.id} favorite status saved to localStorage:`,
+            chat.is_favorite,
+        );
+
+        showNotification(
+            `${chat.name} ${
+                chat.is_favorite ? 'added to' : 'removed from'
+            } favorites`,
+            'success',
+        );
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+        // Revert the change if storage failed
+        chat.is_favorite = !chat.is_favorite;
+        showNotification(
+            `Failed to update favorite status for ${chat.name}`,
+            'error',
+        );
+    } finally {
+        // Remove loading state
+        delete loadingFavorite.value[chat.id];
+    }
+}
+
+async function markAsRead(chat) {
+    console.log('Marking chat as read:', chat.name);
+
+    // Set loading state
+    loadingMarkRead.value[chat.id] = true;
+
+    try {
+        // Add a small delay for better visual feedback
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        chat.unread_count = 0;
+
+        // Here you could make an API call to mark as read
+        // Example: await api.post(`/chats/${chat.id}/mark-read`);
+
+        showNotification(`Marked ${chat.name} as read`, 'success');
+    } catch (error) {
+        console.error('Error marking as read:', error);
+        showNotification(`Failed to mark ${chat.name} as read`, 'error');
+    } finally {
+        // Remove loading state
+        delete loadingMarkRead.value[chat.id];
+    }
+}
+
+async function archiveChat(chat) {
+    console.log('Archiving chat:', chat.name);
+
+    // Set loading state
+    loadingArchive.value[chat.id] = true;
+
+    try {
+        // Add a small delay for better visual feedback
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Toggle archive status
+        chat.is_archived = !chat.is_archived;
+
+        // Save to local storage
+        updateChatArchiveStatus(chat.id, chat.is_archived);
+
+        console.log(
+            `Chat ${chat.id} archive status saved to localStorage:`,
+            chat.is_archived,
+        );
+
+        showNotification(
+            `${chat.name} ${chat.is_archived ? 'archived' : 'unarchived'}`,
+            'success',
+        );
+    } catch (error) {
+        console.error('Error archiving chat:', error);
+        // Revert the change if storage failed
+        chat.is_archived = !chat.is_archived;
+        showNotification(`Failed to archive ${chat.name}`, 'error');
+    } finally {
+        // Remove loading state
+        delete loadingArchive.value[chat.id];
+    }
+}
 const mediaUrl = inject('mediaUrl', 'http://127.0.0.1:8888/');
 
 const socketUrl = inject('socketUrl', 'ws://localhost:8000/ws/');
@@ -866,11 +1797,14 @@ function handleChatListUpdate(chats) {
         'chats',
     );
 
-    users.value = chats.map((chat) => ({
+    // Map all chats first
+    const mappedChats = chats.map((chat) => ({
         gender: chat.gender ?? 'unknown',
         id: chat.id,
         is_active: chat.is_active ?? false,
         is_favorite: chat.is_favorite ?? false,
+        is_archived: chat.is_archived ?? false,
+        folder_id: chat.folder_id ?? null,
         last_message: chat.last_message ?? null,
         last_message_id: chat.last_message_id ?? null,
         last_message_time: chat.last_message_time ?? null,
@@ -891,12 +1825,31 @@ function handleChatListUpdate(chats) {
         username: chat.username ?? '',
         age: chat.age ?? '',
         gender: chat.gender ?? '',
+        member_count: chat.member_count ?? null,
     }));
+
+    // Apply stored favorites and archived states from localStorage
+    const allChats = applyStoredStates(mappedChats);
+
+    // Filter individual users (private chats)
+    users.value = allChats.filter(
+        (chat) => chat.type === 'private' || chat.type === 'user' || !chat.type,
+    );
+
+    // Filter groups (groups, supergroups, channels)
+    groups.value = allChats.filter(
+        (chat) =>
+            chat.type === 'group' ||
+            chat.type === 'supergroup' ||
+            chat.type === 'channel',
+    );
 
     console.log(
         'Chat list updated via WebSocket:',
         users.value.length,
-        'users',
+        'users,',
+        groups.value.length,
+        'groups',
     );
 }
 
@@ -979,11 +1932,14 @@ async function fetchChatLists() {
         if (response && response.data) {
             console.log('Chat list data received:', response.data);
 
-            users.value = response.data.map((account) => ({
+            // Separate users and groups based on type
+            const mappedChats = response.data.map((account) => ({
                 gender: account.gender ?? 'unknown',
                 id: account.id,
                 is_active: account.is_active ?? false,
                 is_favorite: account.is_favorite ?? false,
+                is_archived: account.is_archived ?? false,
+                folder_id: account.folder_id ?? null,
                 last_message: account.last_message ?? null,
                 last_message_id: account.last_message_id ?? null,
                 last_message_time: account.last_message_time ?? null,
@@ -1004,17 +1960,40 @@ async function fetchChatLists() {
                 username: account.username ?? '',
                 age: account.age ?? '',
                 gender: account.gender ?? '',
+                member_count: account.member_count ?? null,
             }));
 
+            // Apply stored favorites and archived states from localStorage
+            const allChats = applyStoredStates(mappedChats);
+
+            // Filter individual users (private chats)
+            users.value = allChats.filter(
+                (chat) =>
+                    chat.type === 'private' ||
+                    chat.type === 'user' ||
+                    !chat.type,
+            );
+
+            // Filter groups (groups, supergroups, channels)
+            groups.value = allChats.filter(
+                (chat) =>
+                    chat.type === 'group' ||
+                    chat.type === 'supergroup' ||
+                    chat.type === 'channel',
+            );
+
             console.log('Processed users:', users.value.length);
+            console.log('Processed groups:', groups.value.length);
         } else {
             console.warn('No data received from chat list API');
             users.value = [];
+            groups.value = [];
         }
     } catch (err) {
         console.error('Error fetching chat list:', err);
         error.value = err.message || 'Failed to load chat list';
         users.value = [];
+        groups.value = [];
     } finally {
         isLoading.value = false;
     }

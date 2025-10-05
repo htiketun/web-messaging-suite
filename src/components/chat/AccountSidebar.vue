@@ -1,7 +1,7 @@
 <template>
     <aside class="h-full p-0 bg-white flex flex-col shadow-md w-full">
         <!-- Mobile: Tabs -->
-        <div class="md:hidden border-b overflow-x-auto bg-gray-50">
+        <div class="md:hidden border-b overflow-x-auto">
             <div class="flex min-w-max">
                 <button
                     v-for="user in filteredUsers"

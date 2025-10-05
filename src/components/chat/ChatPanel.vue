@@ -262,7 +262,7 @@
     </div>
     <div
         v-else
-        class="flex-1 flex items-center justify-center bg-white min-h-screen"
+        class="flex-1 flex items-center justify-center bg-white min-h-screen border border-gray-200"
     >
         <div class="text-center px-4">
             <svg

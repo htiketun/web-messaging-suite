@@ -3,22 +3,22 @@
         <!-- Sidebar -->
         <AccountSidebar
             @account-selected="handleAccountSelected"
-            class="w-full border-b lg:w-1/4 lg:border-b-0 lg:border-r"
+            class="border-b lg:w-2/12 lg:border-b-0 lg:border-r"
         />
-        <div class="block lg:hidden mt-2"></div>
 
+        <div class="block lg:hidden mt-2"></div>
         <ChatSidebar
             :accountId="selectedAccountId"
             @chat-selected="handleChatSelected"
             :chatAccountUser="selectedAccountUser"
-            class="w-full border-b lg:w-2/4 lg:border-b-0 lg:border-r"
+            class="border-b lg:w-6/12 lg:border-b-0 lg:border-r"
         />
 
         <div class="block lg:hidden mt-2"></div>
 
         <!-- Chat Panel -->
         <ChatPanel
-            class="flex-1 flex flex-col w-full"
+            class="flex-1 flex flex-col lg:w-2/12"
             :chatId="selectedChatId"
             :user="selectedUser"
             :chatAccountUser="selectedAccountUser"
