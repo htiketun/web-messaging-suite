@@ -1,7 +1,7 @@
 <template>
     <div
         v-if="accountId"
-        class="h-full bg-white flex shadow-lg lg:w-4/12 sm:w-full max-w-full transition-all duration-300 border-r border-gray-200"
+        class="h-full bg-white flex shadow-lg lg:w-4/12 sm:w-full max-w-full transition-all duration-300 border-r border-gray-200 overflow-hidden"
     >
         <!-- Left Sidebar: Demographic Filters -->
         <div
@@ -18,7 +18,7 @@
                 ]"
                 :title="t('chat.all_users') || 'All Users'"
             >
-                <!-- All Users svg -->
+                <!-- All messages svg -->
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="h-5 w-5"
@@ -30,7 +30,7 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
                     />
                 </svg>
             </div>
@@ -252,165 +252,175 @@
         </div>
 
         <!-- Right Content: Chat List -->
-        <div class="flex-1 flex flex-col p-4">
-            <div class="mb-4 flex flex-col gap-2">
-                <!-- Real-time connection status -->
-                <div class="flex items-center justify-between px-2 py-1">
-                    <div class="flex items-center gap-2 text-xs">
-                        <div
-                            class="w-2 h-2 rounded-full"
-                            :class="{
-                                'bg-green-500': isRealtimeConnected,
-                                'bg-red-500': !isRealtimeConnected,
-                            }"
-                            :title="
-                                isRealtimeConnected
-                                    ? 'Real-time updates active'
-                                    : 'Real-time updates disconnected'
-                            "
-                        ></div>
-                        <span class="text-gray-600">
-                            {{ isRealtimeConnected ? 'Live' : 'Offline' }}
-                        </span>
+        <div
+            class="flex-1 flex flex-col bg-gradient-to-b from-gray-50 to-white overflow-hidden"
+        >
+            <div class="p-4 pb-2 flex-shrink-0">
+                <div class="mb-4 flex flex-col gap-2">
+                    <!-- Real-time connection status -->
+                    <div class="flex items-center justify-between px-2 py-1">
+                        <div class="flex items-center gap-2 text-xs">
+                            <div
+                                class="w-2 h-2 rounded-full"
+                                :class="{
+                                    'bg-green-500': isRealtimeConnected,
+                                    'bg-red-500': !isRealtimeConnected,
+                                }"
+                                :title="
+                                    isRealtimeConnected
+                                        ? 'Real-time updates active'
+                                        : 'Real-time updates disconnected'
+                                "
+                            ></div>
+                            <span class="text-gray-600">
+                                {{ isRealtimeConnected ? 'Live' : 'Offline' }}
+                            </span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button
+                                v-if="
+                                    !isRealtimeConnected &&
+                                    props.chatAccountUser?.session_file
+                                "
+                                @click="setupRealtimeChatListWebSocket()"
+                                class="text-xs text-blue-500 hover:underline"
+                            >
+                                Reconnect
+                            </button>
+                            <button
+                                @click="refreshChatList"
+                                :disabled="isLoading"
+                                class="text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50"
+                                title="Refresh chat list"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    />
+                                </svg>
+                            </button>
+                            <button
+                                @click="bulkPredictAgeGender"
+                                :disabled="
+                                    isLoading ||
+                                    isPredicting ||
+                                    !isRealtimeConnected
+                                "
+                                class="relative text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
+                                :title="
+                                    t(
+                                        'chat.predict_age_gender_for_all_chats_with_ai',
+                                    )
+                                "
+                            >
+                                <svg
+                                    v-if="!isPredicting"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3 w-3 mr-1 inline"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                    />
+                                </svg>
+                                <div
+                                    v-else
+                                    class="animate-spin h-3 w-3 mr-1 inline border border-white border-t-transparent rounded-full"
+                                ></div>
+                                <span class="text-xs font-medium">{{
+                                    isPredicting ? 'AI...' : 'AI'
+                                }}</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
+
+                    <input
+                        type="text"
+                        :placeholder="t('chat.search_placeholder')"
+                        class="px-4 py-2 rounded-full bg-gray-100 border-none focus:ring-2 focus:ring-blue-400 outline-none transition"
+                        v-model="search"
+                    />
+                    <div
+                        class="flex gap-2 items-center"
+                        v-if="activeFolder === 'all'"
+                    >
+                        <select
+                            v-model="genderFilter"
+                            class="rounded px-2 py-1 bg-gray-100 text-sm"
+                        >
+                            <option value="">
+                                {{ t('chat.all_genders') }}
+                            </option>
+                            <option value="male">{{ t('chat.male') }}</option>
+                            <option value="female">
+                                {{ t('chat.female') }}
+                            </option>
+                        </select>
+                        <input
+                            type="number"
+                            v-model.number="ageMin"
+                            :placeholder="t('chat.age_min')"
+                            min="0"
+                            class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
+                        />
+                        <span>-</span>
+                        <input
+                            type="number"
+                            v-model.number="ageMax"
+                            :placeholder="t('chat.age_max')"
+                            min="0"
+                            class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
+                        />
                         <button
                             v-if="
-                                !isRealtimeConnected &&
-                                props.chatAccountUser?.session_file
+                                genderFilter ||
+                                ageMin ||
+                                ageMax ||
+                                onlineFilter ||
+                                activeFilter ||
+                                lastSeenFilter
                             "
-                            @click="setupRealtimeChatListWebSocket()"
-                            class="text-xs text-blue-500 hover:underline"
-                        >
-                            Reconnect
-                        </button>
-                        <button
-                            @click="refreshChatList"
-                            :disabled="isLoading"
-                            class="text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50"
-                            title="Refresh chat list"
+                            @click="clearAllFilters"
+                            class="ml-auto text-sm text-red-500 hover:underline"
+                            :title="t('chat.clear_filters')"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                class="h-3 w-3"
+                                class="h-5 w-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
+                                stroke-width="2"
                             >
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    d="M6 18L18 6M6 6l12 12"
                                 />
                             </svg>
-                        </button>
-                        <button
-                            @click="bulkPredictAgeGender"
-                            :disabled="
-                                isLoading ||
-                                isPredicting ||
-                                !isRealtimeConnected
-                            "
-                            class="relative text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-md hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
-                            :title="
-                                t(
-                                    'chat.predict_age_gender_for_all_chats_with_ai',
-                                )
-                            "
-                        >
-                            <svg
-                                v-if="!isPredicting"
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-3 w-3 mr-1 inline"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                                />
-                            </svg>
-                            <div
-                                v-else
-                                class="animate-spin h-3 w-3 mr-1 inline border border-white border-t-transparent rounded-full"
-                            ></div>
-                            <span class="text-xs font-medium">{{
-                                isPredicting ? 'AI...' : 'AI'
-                            }}</span>
                         </button>
                     </div>
-                </div>
-
-                <input
-                    type="text"
-                    :placeholder="t('chat.search_placeholder')"
-                    class="px-4 py-2 rounded-full bg-gray-100 border-none focus:ring-2 focus:ring-blue-400 outline-none transition"
-                    v-model="search"
-                />
-                <div
-                    class="flex gap-2 items-center"
-                    v-if="activeFolder === 'all'"
-                >
-                    <select
-                        v-model="genderFilter"
-                        class="rounded px-2 py-1 bg-gray-100 text-sm"
-                    >
-                        <option value="">{{ t('chat.all_genders') }}</option>
-                        <option value="male">{{ t('chat.male') }}</option>
-                        <option value="female">{{ t('chat.female') }}</option>
-                    </select>
-                    <input
-                        type="number"
-                        v-model.number="ageMin"
-                        :placeholder="t('chat.age_min')"
-                        min="0"
-                        class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
-                    />
-                    <span>-</span>
-                    <input
-                        type="number"
-                        v-model.number="ageMax"
-                        :placeholder="t('chat.age_max')"
-                        min="0"
-                        class="w-20 rounded px-2 py-1 bg-gray-100 text-sm"
-                    />
-                    <button
-                        v-if="
-                            genderFilter ||
-                            ageMin ||
-                            ageMax ||
-                            onlineFilter ||
-                            activeFilter ||
-                            lastSeenFilter
-                        "
-                        @click="clearAllFilters"
-                        class="ml-auto text-sm text-red-500 hover:underline"
-                        :title="t('chat.clear_filters')"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
                 </div>
             </div>
 
             <!-- Chat List Content Based on Active Folder -->
-            <div class="flex-1 flex flex-col overflow-hidden">
+            <div
+                class="flex-1 flex flex-col overflow-hidden px-4 pb-4 chat-list-container"
+            >
                 <div class="mb-2 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h2 class="text-lg font-semibold text-gray-800">
@@ -431,7 +441,13 @@
                     </span>
                 </div>
 
-                <ul class="flex-1 overflow-y-auto space-y-1">
+                <ul
+                    class="flex-1 overflow-y-auto space-y-1 min-h-0 pr-2 pb-4"
+                    style="
+                        scrollbar-width: thin;
+                        scrollbar-color: #d1d5db #f3f4f6;
+                    "
+                >
                     <!-- Loading State -->
                     <li v-if="isLoading" class="text-center text-gray-400 py-8">
                         <div
@@ -469,44 +485,56 @@
                     <li
                         v-for="chat in getDisplayedChats()"
                         :key="chat.id"
-                        class="flex items-center p-3 rounded-xl hover:bg-blue-100 cursor-pointer transition group border border-transparent"
+                        class="flex items-start p-3 rounded-2xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all duration-300 group border border-transparent hover:border-blue-200 hover:shadow-lg hover:scale-[1.01] transform"
                         :class="
                             chat.id === (selectedChatId && selectedChatId.id)
-                                ? 'bg-blue-100 border-blue-300'
+                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-blue-300 shadow-lg scale-[1.01] ring-2 ring-blue-200 ring-opacity-50'
                                 : chat.is_active
-                                ? 'bg-blue-50 border-blue-200'
-                                : ''
+                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-sm'
+                                : 'hover:shadow-md bg-white border-gray-100'
                         "
                         @click="selectChat(chat)"
                         tabindex="0"
                         @keydown.enter="selectChat(chat)"
                         aria-label="Open chat with {{ chat.name || t('chat.unknown_user') }}"
                     >
-                        <div class="relative mr-3">
+                        <!-- Avatar Section -->
+                        <div class="relative mr-4 flex-shrink-0">
                             <!-- Avatar for individual users -->
-                            <img
+                            <div
                                 v-if="
                                     chat.type === 'private' ||
                                     chat.type === 'user' ||
                                     !chat.type
                                 "
-                                :src="
-                                    chat.avatarType === 'base64'
-                                        ? `data:image/jpeg;base64,${chat.avatar}`
-                                        : chat.avatar ||
-                                          'https://ui-avatars.com/api/?name=User&background=random&size=128'
-                                "
-                                class="w-12 h-12 rounded-full border-2 border-blue-100 object-cover bg-gray-100"
-                                :alt="chat.name || t('chat.unknown_user')"
-                            />
+                                class="relative"
+                            >
+                                <img
+                                    :src="
+                                        chat.avatarType === 'base64'
+                                            ? `data:image/jpeg;base64,${chat.avatar}`
+                                            : chat.avatar ||
+                                              'https://ui-avatars.com/api/?name=User&background=random&size=128'
+                                    "
+                                    class="w-14 h-14 rounded-2xl border-3 border-white object-cover bg-gray-100 shadow-xl ring-2 ring-blue-100 ring-opacity-50 transition-all duration-300 group-hover:ring-blue-200 group-hover:ring-opacity-75 group-hover:shadow-2xl"
+                                    :alt="chat.name || t('chat.unknown_user')"
+                                />
+                                <!-- Online Status for individual users -->
+                                <span
+                                    v-if="chat.is_online"
+                                    class="absolute -top-0 -left-0 w-4 h-4 bg-green-500 border-3 border-white rounded-full shadow-md animate-pulse"
+                                    title="Online"
+                                ></span>
+                            </div>
+
                             <!-- Icon for groups -->
                             <div
                                 v-else
-                                class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center"
+                                class="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    class="h-6 w-6 text-white"
+                                    class="h-7 w-7 text-white"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -518,104 +546,104 @@
                                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                                     />
                                 </svg>
+                                <!-- Online Status for groups -->
+                                <span
+                                    v-if="chat.is_online"
+                                    class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-3 border-white rounded-full shadow-md animate-pulse"
+                                    title="Online"
+                                ></span>
                             </div>
-                            <span
-                                v-if="chat.is_online"
-                                class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow"
-                                title="Online"
-                            ></span>
-                        </div>
-                        <div class="flex-1 min-w-0">
+
+                            <!-- Unread Count Badge -->
                             <div
-                                class="text-xs text-gray-500 flex flex-wrap items-center gap-2"
+                                v-if="
+                                    chat.unread_count && chat.unread_count > 0
+                                "
+                                class="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-2 py-1 rounded-full min-w-[1.2rem] text-center font-bold shadow-lg border-2 border-white animate-bounce"
+                                :title="`${chat.unread_count} ${t(
+                                    'chat.unread_messages',
+                                )}`"
                             >
-                                <!-- Gender Icon -->
+                                {{
+                                    chat.unread_count > 99
+                                        ? '99+'
+                                        : chat.unread_count
+                                }}
+                            </div>
+
+                            <!-- User Info Badges Row - Compact & Attractive (Bottom) -->
+                            <div
+                                class="flex items-center gap-1 mt-1 justify-center"
+                            >
+                                <!-- Gender Badge - Minimal -->
                                 <span
                                     v-if="chat.gender"
-                                    class="flex items-center"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium shadow-sm transition-all duration-200"
+                                    :class="{
+                                        'bg-blue-100 text-blue-700 border border-blue-200':
+                                            chat.gender === 'male',
+                                        'bg-pink-100 text-pink-700 border border-pink-200':
+                                            chat.gender === 'female',
+                                        'bg-gray-100 text-gray-600 border border-gray-200':
+                                            chat.gender !== 'male' &&
+                                            chat.gender !== 'female',
+                                    }"
                                     :title="t(`chat.${chat.gender}`)"
                                 >
-                                    <svg
-                                        v-if="chat.gender === 'male'"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4 mr-1 text-blue-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <circle
-                                            cx="10"
-                                            cy="14"
-                                            r="5"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            fill="none"
-                                        />
-                                        <path
-                                            d="M19 5v4m0-4h-4m4 0l-6 6"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        />
-                                    </svg>
-                                    <svg
+                                    <template v-if="chat.gender === 'male'">
+                                        ♂
+                                    </template>
+                                    <template
                                         v-else-if="chat.gender === 'female'"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4 mr-1 text-pink-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
                                     >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
-                                        />
-                                    </svg>
-                                    <svg
-                                        v-else
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4 mr-1 text-gray-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <circle
-                                            cx="12"
-                                            cy="12"
-                                            r="5"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            fill="none"
-                                        />
-                                    </svg>
+                                        ♀
+                                    </template>
+                                    <template v-else> ? </template>
                                 </span>
-                                <!-- Age Badge -->
+
+                                <!-- Age Badge - Minimal -->
                                 <span
                                     v-if="chat.age"
-                                    class="flex items-center px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-800 text-xs font-semibold shadow-sm border border-yellow-200"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-xs font-medium border border-amber-200 shadow-sm"
                                     :title="`${t('chat.age')}: ${chat.age}`"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4 mr-1 text-gray-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 14v7m0 0H9m3 0h3m-3-7a5 5 0 100-10 5 5 0 000 10z"
-                                        />
-                                    </svg>
                                     {{ chat.age }}
                                 </span>
 
-                                <!-- Last Seen -->
+                                <!-- Member Count Badge - For Groups -->
+                                <span
+                                    v-if="
+                                        chat.member_count &&
+                                        (chat.type === 'group' ||
+                                            chat.type === 'supergroup' ||
+                                            chat.type === 'channel')
+                                    "
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-xs font-medium border border-indigo-200 shadow-sm"
+                                    :title="t('chat.members')"
+                                >
+                                    {{ chat.member_count }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Chat Content Section -->
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <!-- Header Row: Name and Time -->
+                            <!-- Action Buttons Row -->
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <h3
+                                    class="font-semibold text-gray-900 text-base truncate pr-2 leading-tight"
+                                >
+                                    {{
+                                        chat.name ||
+                                        (chat.type === 'group' ||
+                                        chat.type === 'supergroup' ||
+                                        chat.type === 'channel'
+                                            ? t('chat.unknown_group')
+                                            : t('chat.unknown_user'))
+                                    }}
+                                </h3>
+
                                 <!-- AI Prediction Button -->
                                 <button
                                     v-if="
@@ -631,7 +659,7 @@
                                         isPredictingUser[chat.id] ||
                                         !isRealtimeConnected
                                     "
-                                    class="flex items-center px-2 py-0.5 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 hover:scale-105"
+                                    class="flex items-center px-2 py-0.5 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 hover:scale-105"
                                     :title="
                                         t('chat.predict_age_gender_with_ai')
                                     "
@@ -678,7 +706,7 @@
                                         isPredictingUser[chat.id] ||
                                         !isRealtimeConnected
                                     "
-                                    class="flex items-center px-1.5 py-0.5 text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full hover:from-amber-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 ml-1 opacity-0 group-hover:opacity-100 hover:scale-105"
+                                    class="flex items-center px-1.5 py-0.5 text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full hover:from-amber-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-105"
                                     :title="t('chat.re_predict_with_ai')"
                                 >
                                     <svg
@@ -704,17 +732,109 @@
                                         isPredictingUser[chat.id] ? '...' : 'AI'
                                     }}</span>
                                 </button>
+                                <!-- Last Seen Badge -->
+                                <span
+                                    v-if="
+                                        chat.last_seen &&
+                                        (chat.type === 'private' ||
+                                            chat.type === 'user' ||
+                                            !chat.type)
+                                    "
+                                    class="ml-auto inline-flex items-center px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-900 text-xs font-semibold border border-emerald-300 shadow-sm transition-all duration-200 hover:scale-105 hover:from-emerald-200 hover:to-emerald-300"
+                                    :title="t('chat.last_seen')"
+                                >
+                                    <svg
+                                        class="h-3 w-3 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                    {{ chat.last_seen }}
+                                </span>
+                            </div>
 
-                                <!-- Edit Mode Controls -->
+                            <!-- Last Message Preview Row -->
+                            <div
+                                class="flex items-center gap-2 mt-1.5 p-1.5 bg-gray-50 rounded-lg border border-gray-100"
+                            >
+                                <!-- Last Message Text with Limited Width -->
+                                <div class="flex items-center flex-1 min-w-0">
+                                    <span
+                                        class="text-sm text-gray-700 truncate flex items-center font-medium"
+                                        v-if="
+                                            chat.last_message &&
+                                            chat.last_message.text
+                                        "
+                                    >
+                                        💬
+                                        {{ chat.last_message.text }}
+                                    </span>
+                                    <span
+                                        v-else-if="
+                                            !chat.last_message ||
+                                            !chat.last_message.text
+                                        "
+                                        class="text-sm text-gray-500 italic flex items-center"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4 mr-2 text-gray-400"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                        📷 Stickers, Photos, or Files
+                                    </span>
+                                </div>
+
+                                <!-- Last Message Time (after message) -->
                                 <div
-                                    v-if="isEditMode"
-                                    class="flex flex-wrap items-center gap-2"
+                                    v-if="chat.last_message_time"
+                                    class="text-xs text-gray-500 whitespace-nowrap flex items-center flex-shrink-0 ml-auto bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm"
+                                    :title="t('chat.last_message_time')"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-3 w-3 mr-1 text-gray-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                    {{ formatTime(chat.last_message_time) }}
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode Controls -->
+                            <template v-if="isEditMode">
+                                <div
+                                    class="flex flex-wrap items-center gap-2 mb-2"
                                 >
                                     <button
                                         @click.stop="toggleFavorite(chat)"
                                         :disabled="loadingFavorite[chat.id]"
                                         :class="[
-                                            'group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
+                                            'group relative flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
                                             chat.is_favorite
                                                 ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-md hover:from-yellow-500 hover:to-amber-600 hover:shadow-lg'
                                                 : 'bg-white text-gray-600 border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 hover:text-yellow-600 shadow-sm',
@@ -729,13 +849,13 @@
                                     >
                                         <div
                                             v-if="loadingFavorite[chat.id]"
-                                            class="animate-spin h-3.5 w-3.5 border border-current border-t-transparent rounded-full"
+                                            class="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full"
                                         ></div>
                                         <svg
                                             v-else
                                             xmlns="http://www.w3.org/2000/svg"
                                             :class="[
-                                                'h-3.5 w-3.5 transition-all duration-300',
+                                                'h-3 w-3 transition-all duration-300',
                                                 chat.is_favorite
                                                     ? 'text-white scale-110'
                                                     : 'text-gray-500 group-hover:text-yellow-500',
@@ -757,24 +877,26 @@
                                                 d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
                                             />
                                         </svg>
-                                        <span class="hidden sm:inline">
-                                            {{
+                                        <span
+                                            class="hidden sm:inline text-xs"
+                                            >{{
                                                 loadingFavorite[chat.id]
                                                     ? 'Updating...'
                                                     : chat.is_favorite
                                                     ? 'Favorited'
                                                     : 'Favorite'
-                                            }}
-                                        </span>
+                                            }}</span
+                                        >
                                     </button>
-                                    <button
+
+                                    <!-- <button
                                         @click.stop="markAsRead(chat)"
                                         v-if="
                                             chat.unread_count &&
                                             chat.unread_count > 0
                                         "
                                         :disabled="loadingMarkRead[chat.id]"
-                                        class="group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-md hover:from-blue-600 hover:to-cyan-700 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                                        class="group relative flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-md hover:from-blue-600 hover:to-cyan-700 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                                         :title="
                                             loadingMarkRead[chat.id]
                                                 ? 'Marking as read...'
@@ -783,12 +905,12 @@
                                     >
                                         <div
                                             v-if="loadingMarkRead[chat.id]"
-                                            class="animate-spin h-3.5 w-3.5 border border-white border-t-transparent rounded-full"
+                                            class="animate-spin h-3 w-3 border border-white border-t-transparent rounded-full"
                                         ></div>
                                         <svg
                                             v-else
                                             xmlns="http://www.w3.org/2000/svg"
-                                            class="h-3.5 w-3.5 text-white transition-all duration-300"
+                                            class="h-3 w-3 text-white transition-all duration-300"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -800,19 +922,21 @@
                                                 d="M5 13l4 4L19 7"
                                             />
                                         </svg>
-                                        <span class="hidden sm:inline">
-                                            {{
+                                        <span
+                                            class="hidden sm:inline text-xs"
+                                            >{{
                                                 loadingMarkRead[chat.id]
                                                     ? 'Reading...'
                                                     : 'Mark Read'
-                                            }}
-                                        </span>
-                                    </button>
+                                            }}</span
+                                        >
+                                    </button> -->
+
                                     <button
                                         @click.stop="archiveChat(chat)"
                                         :disabled="loadingArchive[chat.id]"
                                         :class="[
-                                            'group relative flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
+                                            'group relative flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none',
                                             chat.is_archived
                                                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md hover:from-indigo-600 hover:to-purple-700 hover:shadow-lg'
                                                 : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 shadow-sm',
@@ -827,13 +951,13 @@
                                     >
                                         <div
                                             v-if="loadingArchive[chat.id]"
-                                            class="animate-spin h-3.5 w-3.5 border border-current border-t-transparent rounded-full"
+                                            class="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full"
                                         ></div>
                                         <svg
                                             v-else
                                             xmlns="http://www.w3.org/2000/svg"
                                             :class="[
-                                                'h-3.5 w-3.5 transition-all duration-300',
+                                                'h-3 w-3 transition-all duration-300',
                                                 chat.is_archived
                                                     ? 'text-white'
                                                     : 'text-gray-500 group-hover:text-indigo-500',
@@ -849,111 +973,19 @@
                                                 d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
                                             />
                                         </svg>
-                                        <span class="hidden sm:inline">
-                                            {{
+                                        <span
+                                            class="hidden sm:inline text-xs"
+                                            >{{
                                                 loadingArchive[chat.id]
                                                     ? 'Updating...'
                                                     : chat.is_archived
                                                     ? 'Archived'
                                                     : 'Archive'
-                                            }}
-                                        </span>
+                                            }}</span
+                                        >
                                     </button>
                                 </div>
-                                <span
-                                    v-if="
-                                        chat.last_seen &&
-                                        (chat.type === 'private' ||
-                                            chat.type === 'user' ||
-                                            !chat.type)
-                                    "
-                                    class="flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium shadow-sm ml-auto"
-                                    :title="t('chat.last_seen')"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-3 w-3 mr-1 text-green-400"
-                                        fill="none"
-                                        viewBox="0 0 20 20"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 8V5a1 1 0 10-2 0v5a1 1 0 00.293.707l3 3a1 1 0 101.414-1.414l-2.707-2.707z"
-                                        />
-                                    </svg>
-                                    {{ chat.last_seen }}
-                                </span>
-                                <!-- Member count for groups -->
-                                <span
-                                    v-if="
-                                        chat.member_count &&
-                                        (chat.type === 'group' ||
-                                            chat.type === 'supergroup' ||
-                                            chat.type === 'channel')
-                                    "
-                                    class="flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium shadow-sm ml-auto"
-                                    :title="t('chat.members')"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-3 w-3 mr-1 text-blue-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                        />
-                                    </svg>
-                                    {{ chat.member_count }}
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-between mt-1">
-                                <div
-                                    class="font-semibold truncate text-gray-900"
-                                >
-                                    {{
-                                        chat.name ||
-                                        (chat.type === 'group' ||
-                                        chat.type === 'supergroup' ||
-                                        chat.type === 'channel'
-                                            ? t('chat.unknown_group')
-                                            : t('chat.unknown_user'))
-                                    }}
-                                </div>
-                                <div
-                                    v-if="chat.last_message_time"
-                                    class="text-xs text-gray-400 ml-2 whitespace-nowrap"
-                                >
-                                    {{ formatTime(chat.last_message_time) }}
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between mt-1">
-                                <span
-                                    class="text-xs text-gray-500 truncate flex items-center"
-                                    v-if="
-                                        chat.last_message &&
-                                        chat.last_message.text
-                                    "
-                                >
-                                    {{ chat.last_message.text }}
-                                </span>
-                                <span
-                                    v-if="
-                                        chat.unread_count &&
-                                        chat.unread_count > 0
-                                    "
-                                    class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full ml-2 min-w-[2rem] text-center font-bold shadow"
-                                >
-                                    {{ chat.unread_count }}
-                                </span>
-                            </div>
+                            </template>
                         </div>
                     </li>
                     <li
@@ -1373,8 +1405,11 @@ function getFolderTitle(folder) {
 }
 
 function getDisplayedChats() {
-    const allChats = [...users.value, ...groups.value];
-
+    // where not id 1919063625 and 8297286605
+    const excludedIds = [1919063625, 8297286605];
+    const allChats = [...users.value, ...groups.value].filter(
+        (chat) => !excludedIds.includes(chat.id),
+    );
     // Apply search filter first
     let filteredChats = allChats.filter((chat) => {
         if (
@@ -2225,3 +2260,35 @@ watch(
     },
 );
 </script>
+
+<style scoped>
+/* Custom scrollbar styles for chat list */
+ul::-webkit-scrollbar {
+    width: 6px;
+}
+
+ul::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+}
+
+ul::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+ul::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Smooth scrolling */
+ul {
+    scroll-behavior: smooth;
+}
+
+/* Ensure proper height calculation */
+.chat-list-container {
+    height: calc(100vh - 200px);
+    min-height: 0;
+}
+</style>

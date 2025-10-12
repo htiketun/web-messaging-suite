@@ -175,6 +175,9 @@ export default {
             no_favorites: '未找到收藏的聊天',
             no_archived: '未找到归档的聊天',
             no_folders: '未找到组织的文件夹',
+            folders: '文件夹',
+            last_message_time: '最后消息时间',
+            unread_messages: '未读消息',
         },
     },
 };

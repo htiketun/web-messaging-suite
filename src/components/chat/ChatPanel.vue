@@ -32,6 +32,8 @@
                     </div>
                     <div class="text-xs text-gray-500 flex items-center gap-1">
                         {{ user.last_seen }}
+                        <span class="mx-2">•</span>
+                        <span>{{ messages.length }} messages</span>
                         <!-- Real-time connection status -->
                         <span class="mx-2">•</span>
                         <div class="flex items-center gap-1">
@@ -58,23 +60,38 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <!-- Mark all as read button -->
+                <!-- Saved messages button -->
                 <button
-                    @click="markMessagesAsRead"
-                    class="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
-                    title="Mark all messages as read"
+                    @click="showSavedMessages = !showSavedMessages"
+                    :class="[
+                        'px-3 py-1 text-xs rounded-full transition flex items-center gap-1',
+                        showSavedMessages
+                            ? 'bg-yellow-100 text-yellow-600'
+                            : 'bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-600',
+                    ]"
+                    :title="
+                        showSavedMessages
+                            ? 'Hide saved messages'
+                            : 'Show saved messages'
+                    "
                 >
-                    Mark Read
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-3 w-3"
+                        :fill="showSavedMessages ? 'currentColor' : 'none'"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                        />
+                    </svg>
+                    Saved ({{ getSavedMessagesForCurrentChat().length }})
                 </button>
 
-                <!-- Test WebSocket button (for debugging) -->
-                <button
-                    @click="testWebSocketConnection"
-                    class="px-3 py-1 text-xs bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"
-                    title="Test WebSocket connection"
-                >
-                    Test WS
-                </button>
                 <button
                     class="p-2 hover:bg-gray-100 rounded-full transition"
                     aria-label="More options"
@@ -93,11 +110,194 @@
                 </button>
             </div>
         </div>
+
+        <!-- Saved Messages Panel -->
+        <div
+            v-if="showSavedMessages"
+            class="bg-yellow-50 border-b border-yellow-200 max-h-64 overflow-y-auto"
+        >
+            <div class="p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3
+                        class="text-sm font-semibold text-yellow-800 flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                            />
+                        </svg>
+                        Saved Messages ({{
+                            getSavedMessagesForCurrentChat().length
+                        }})
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <!-- Export button -->
+                        <button
+                            v-if="savedMessages.length > 0"
+                            @click="exportSavedMessages"
+                            class="text-xs text-blue-600 hover:text-blue-800 underline"
+                            title="Export all saved messages"
+                        >
+                            Export
+                        </button>
+
+                        <!-- Import button -->
+                        <label
+                            class="text-xs text-green-600 hover:text-green-800 underline cursor-pointer"
+                            title="Import saved messages"
+                        >
+                            <input
+                                type="file"
+                                accept=".json"
+                                @change="importSavedMessages"
+                                class="hidden"
+                            />
+                            Import
+                        </label>
+
+                        <!-- Clear button -->
+                        <button
+                            v-if="getSavedMessagesForCurrentChat().length > 0"
+                            @click="clearSavedMessagesForCurrentChat"
+                            class="text-xs text-red-600 hover:text-red-800 underline"
+                            title="Clear all saved messages for this chat"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search input -->
+                <div
+                    v-if="
+                        savedMessages.filter(
+                            (msg) => msg.chatId == props.chatId,
+                        ).length > 0
+                    "
+                    class="mb-3"
+                >
+                    <input
+                        v-model="savedMessagesSearch"
+                        type="text"
+                        placeholder="Search saved messages..."
+                        class="w-full px-3 py-2 text-xs border border-yellow-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    />
+                </div>
+
+                <div
+                    v-if="
+                        savedMessages.filter(
+                            (msg) => msg.chatId == props.chatId,
+                        ).length === 0
+                    "
+                    class="text-xs text-yellow-600 text-center py-4"
+                >
+                    No saved messages yet. Hover over messages and click the
+                    bookmark icon to save them.
+                </div>
+
+                <div
+                    v-else-if="
+                        getSavedMessagesForCurrentChat().length === 0 &&
+                        savedMessagesSearch.trim()
+                    "
+                    class="text-xs text-yellow-600 text-center py-4"
+                >
+                    No saved messages match your search "{{
+                        savedMessagesSearch
+                    }}".
+                </div>
+
+                <div v-else class="space-y-2">
+                    <div
+                        v-for="savedMsg in getSavedMessagesForCurrentChat()"
+                        :key="savedMsg.id"
+                        class="bg-white rounded-lg p-2 shadow-sm border border-yellow-200"
+                    >
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs text-gray-500 mb-1">
+                                    {{
+                                        savedMsg.fromMe
+                                            ? 'You'
+                                            : savedMsg.chatName
+                                    }}
+                                    •
+                                    {{
+                                        new Date(
+                                            savedMsg.savedAt,
+                                        ).toLocaleString()
+                                    }}
+                                </div>
+                                <div
+                                    class="text-sm text-gray-800 break-words"
+                                    v-html="savedMsg.text"
+                                ></div>
+                            </div>
+                            <button
+                                @click="
+                                    unsaveMessage(savedMsg.originalMessageId)
+                                "
+                                class="flex-shrink-0 text-red-500 hover:text-red-700 p-1"
+                                title="Remove from saved messages"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Chat Messages -->
         <div
             ref="messagesContainer"
             class="flex-1 overflow-y-auto px-2 py-2 sm:px-4 sm:py-4 md:px-8 space-y-4 sm:space-y-6 bg-transparent scroll-smooth"
+            @scroll="handleScroll"
         >
+            <!-- Loading indicator for older messages -->
+            <div
+                v-if="isLoadingMessages && hasMoreMessages"
+                class="flex justify-center py-4"
+            >
+                <div
+                    class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"
+                ></div>
+            </div>
+
+            <!-- No more messages indicator -->
+            <div
+                v-if="!hasMoreMessages && messages.length > 0"
+                class="flex justify-center py-4"
+            >
+                <div
+                    class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full"
+                >
+                    📜 Beginning of conversation
+                </div>
+            </div>
+
             <div
                 v-for="msg in messages"
                 :key="msg.id"
@@ -110,7 +310,7 @@
                 <div class="text-xs text-gray-400 px-2">{{ msg.time }}</div>
                 <div
                     :class="[
-                        'p-3 rounded-2xl shadow max-w-[80vw] sm:max-w-[60vw] md:max-w-lg break-words relative cursor-pointer',
+                        'p-3 rounded-2xl shadow max-w-[80vw] sm:max-w-[60vw] md:max-w-lg break-words relative cursor-pointer group',
                         msg.fromMe
                             ? 'bg-blue-500 text-white rounded-br-md'
                             : 'bg-white rounded-bl-md border border-gray-100',
@@ -125,6 +325,39 @@
                             markSpecificMessageAsRead(msg.id)
                     "
                 >
+                    <!-- Save/Unsave button -->
+                    <button
+                        @click.stop="toggleSaveMessage(msg)"
+                        :class="[
+                            'absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                            isMessageSaved(msg.id)
+                                ? 'text-yellow-500'
+                                : 'text-gray-400 hover:text-yellow-500',
+                        ]"
+                        :title="
+                            isMessageSaved(msg.id)
+                                ? 'Remove from saved messages'
+                                : 'Save message'
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4"
+                            :fill="
+                                isMessageSaved(msg.id) ? 'currentColor' : 'none'
+                            "
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                            />
+                        </svg>
+                    </button>
+
                     <!-- Unread indicator dot -->
 
                     <span v-html="msg.text"></span>
@@ -195,6 +428,29 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Scroll to Bottom Button -->
+            <button
+                v-if="!isAutoScrollEnabled && messages.length > 0"
+                @click="scrollToBottom(true)"
+                class="fixed bottom-24 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 z-20"
+                title="Scroll to bottom"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                </svg>
+            </button>
         </div>
         <!-- Chat Input -->
         <div
@@ -290,7 +546,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, onMounted, onUnmounted, inject } from 'vue';
 import EmojiPicker from 'vue3-emoji-picker';
 import 'vue3-emoji-picker/css';
 import { useI18n } from 'vue-i18n';
@@ -318,10 +574,388 @@ const showEmojiPicker = ref(false);
 const messagesContainer = ref(null);
 const isMonitoring = ref(false);
 const connectionStatus = ref('disconnected');
+const isAutoScrollEnabled = ref(true);
+const isLoadingMessages = ref(false);
+const hasMoreMessages = ref(true);
+const savedMessages = ref([]);
+const showSavedMessages = ref(false);
+const savedMessagesSearch = ref('');
 
 function onEmojiSelect(emoji) {
     input.value += emoji.i;
     showEmojiPicker.value = false;
+}
+
+// LocalStorage management for saved messages
+function loadSavedMessages() {
+    try {
+        const saved = localStorage.getItem('savedMessages');
+        if (saved) {
+            savedMessages.value = JSON.parse(saved);
+            console.log(
+                `Loaded ${savedMessages.value.length} saved messages from localStorage`,
+            );
+        } else {
+            savedMessages.value = [];
+        }
+    } catch (error) {
+        console.error('Error loading saved messages from localStorage:', error);
+        savedMessages.value = [];
+    }
+}
+
+function saveSavedMessages() {
+    try {
+        localStorage.setItem(
+            'savedMessages',
+            JSON.stringify(savedMessages.value),
+        );
+        console.log(
+            `Saved ${savedMessages.value.length} messages to localStorage`,
+        );
+    } catch (error) {
+        console.error('Error saving messages to localStorage:', error);
+    }
+}
+
+function saveMessage(message) {
+    const messageToSave = {
+        id: message.id,
+        chatId: props.chatId,
+        chatName: props.user?.name || 'Unknown User',
+        fromMe: message.fromMe,
+        text: message.text,
+        time: message.time,
+        savedAt: new Date().toISOString(),
+        originalMessageId: message.id,
+    };
+
+    // Check if message is already saved
+    const existingIndex = savedMessages.value.findIndex(
+        (msg) =>
+            msg.originalMessageId === message.id && msg.chatId == props.chatId,
+    );
+
+    if (existingIndex === -1) {
+        savedMessages.value.unshift(messageToSave); // Add to beginning
+        saveSavedMessages();
+        console.log('Message saved to localStorage:', messageToSave);
+        return true;
+    } else {
+        console.log('Message already saved');
+        return false;
+    }
+}
+
+function unsaveMessage(messageId) {
+    const index = savedMessages.value.findIndex(
+        (msg) =>
+            msg.originalMessageId === messageId && msg.chatId == props.chatId,
+    );
+
+    if (index !== -1) {
+        savedMessages.value.splice(index, 1);
+        saveSavedMessages();
+        console.log('Message removed from saved messages');
+        return true;
+    }
+    return false;
+}
+
+function isMessageSaved(messageId) {
+    return savedMessages.value.some(
+        (msg) =>
+            msg.originalMessageId === messageId && msg.chatId == props.chatId,
+    );
+}
+
+function clearAllSavedMessages() {
+    savedMessages.value = [];
+    saveSavedMessages();
+    console.log('All saved messages cleared');
+}
+
+function getSavedMessagesForCurrentChat() {
+    let filtered = savedMessages.value.filter(
+        (msg) => msg.chatId == props.chatId,
+    );
+
+    if (savedMessagesSearch.value.trim()) {
+        const searchTerm = savedMessagesSearch.value.toLowerCase();
+        filtered = filtered.filter(
+            (msg) =>
+                msg.text.toLowerCase().includes(searchTerm) ||
+                msg.chatName.toLowerCase().includes(searchTerm),
+        );
+    }
+
+    return filtered.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+}
+
+function getAllSavedMessages() {
+    return savedMessages.value;
+}
+
+function toggleSaveMessage(message) {
+    if (isMessageSaved(message.id)) {
+        unsaveMessage(message.id);
+    } else {
+        saveMessage(message);
+    }
+}
+
+function clearSavedMessagesForCurrentChat() {
+    if (
+        confirm(
+            'Are you sure you want to clear all saved messages for this chat?',
+        )
+    ) {
+        savedMessages.value = savedMessages.value.filter(
+            (msg) => msg.chatId != props.chatId,
+        );
+        saveSavedMessages();
+        console.log('Cleared saved messages for current chat');
+    }
+}
+
+function exportSavedMessages() {
+    try {
+        const dataStr = JSON.stringify(savedMessages.value, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `saved-messages-${
+            new Date().toISOString().split('T')[0]
+        }.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+        console.log('Saved messages exported successfully');
+    } catch (error) {
+        console.error('Error exporting saved messages:', error);
+    }
+}
+
+function importSavedMessages(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const importedMessages = JSON.parse(e.target.result);
+            if (Array.isArray(importedMessages)) {
+                // Merge with existing messages, avoiding duplicates
+                const existingIds = new Set(
+                    savedMessages.value.map(
+                        (msg) => `${msg.originalMessageId}-${msg.chatId}`,
+                    ),
+                );
+                const newMessages = importedMessages.filter(
+                    (msg) =>
+                        !existingIds.has(
+                            `${msg.originalMessageId}-${msg.chatId}`,
+                        ),
+                );
+
+                savedMessages.value = [...savedMessages.value, ...newMessages];
+                saveSavedMessages();
+                console.log(
+                    `Imported ${newMessages.length} new saved messages`,
+                );
+            } else {
+                throw new Error('Invalid file format');
+            }
+        } catch (error) {
+            console.error('Error importing saved messages:', error);
+            alert(
+                'Error importing saved messages. Please check the file format.',
+            );
+        }
+    };
+    reader.readAsText(file);
+
+    // Reset file input
+    event.target.value = '';
+}
+
+// Enhanced scroll handling with throttling
+let scrollTimeout = null;
+function handleScroll() {
+    if (!messagesContainer.value) return;
+
+    // Throttle scroll events for better performance
+    if (scrollTimeout) clearTimeout(scrollTimeout);
+
+    scrollTimeout = setTimeout(() => {
+        const container = messagesContainer.value;
+        if (!container) return;
+
+        const scrollTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+
+        // Check if user is near the bottom (within 100px)
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        isAutoScrollEnabled.value = isNearBottom;
+
+        // Load more messages when scrolled to top
+        if (
+            scrollTop === 0 &&
+            hasMoreMessages.value &&
+            !isLoadingMessages.value
+        ) {
+            loadMoreMessages();
+        }
+
+        // Check for messages in view and mark as read
+        checkMessagesInView();
+    }, 100); // Throttle to 100ms
+}
+
+// Smooth scroll to bottom
+function scrollToBottom(force = false) {
+    if (!messagesContainer.value) return;
+
+    if (force || isAutoScrollEnabled.value) {
+        nextTick(() => {
+            if (messagesContainer.value) {
+                messagesContainer.value.scrollTo({
+                    top: messagesContainer.value.scrollHeight,
+                    behavior: 'smooth',
+                });
+            }
+        });
+    }
+}
+
+// Get last message from the current messages array
+function getLastMessage() {
+    if (messages.value.length === 0) return null;
+    return messages.value[messages.value.length - 1];
+}
+
+// Get message statistics
+function getMessageStats() {
+    const totalMessages = messages.value.length;
+    const unreadMessages = messages.value.filter(
+        (msg) => !msg.fromMe && !msg.isRead,
+    ).length;
+    const lastMessage = getLastMessage();
+
+    return {
+        total: totalMessages,
+        unread: unreadMessages,
+        lastMessage: lastMessage,
+        hasMessages: totalMessages > 0,
+    };
+}
+
+// Mark messages as read when scrolling to them
+function checkMessagesInView() {
+    if (!messagesContainer.value) return;
+
+    const container = messagesContainer.value;
+    const containerRect = container.getBoundingClientRect();
+
+    // Find messages that are currently visible
+    const messageElements = container.querySelectorAll('[data-message-id]');
+    messageElements.forEach((element) => {
+        const rect = element.getBoundingClientRect();
+        const isVisible =
+            rect.top >= containerRect.top &&
+            rect.bottom <= containerRect.bottom;
+
+        if (isVisible) {
+            const messageId = element.dataset.messageId;
+            const isFromMe = element.dataset.fromMe === 'true';
+
+            if (!isFromMe && messageId) {
+                const message = messages.value.find(
+                    (msg) => msg.id == messageId,
+                );
+                if (message && !message.isRead) {
+                    markSpecificMessageAsRead(parseInt(messageId));
+                }
+            }
+        }
+    });
+}
+
+// Load more messages (pagination)
+const nextPageUrl = ref(null);
+
+async function loadMoreMessages() {
+    if (isLoadingMessages.value || !hasMoreMessages.value) return;
+
+    isLoadingMessages.value = true;
+    const currentScrollHeight = messagesContainer.value?.scrollHeight || 0;
+
+    try {
+        let apiUrl;
+
+        if (nextPageUrl.value) {
+            // Use the next page URL from previous response
+            apiUrl = nextPageUrl.value.replace('http://127.0.0.1:8888/api', '');
+        } else {
+            // First load or fallback
+            const page = Math.ceil(messages.value.length / 25) + 1;
+            apiUrl = `/chats/${props.chatId}/messages/?page=${page}`;
+        }
+
+        const response = await api.get(apiUrl);
+
+        if (response && response.data && response.data.results.length > 0) {
+            const newMessages = response.data.results
+                .map((message) => {
+                    const isFromMe = message.chat_id != message.sender_id;
+                    return {
+                        id: message.id,
+                        fromMe: isFromMe,
+                        text: message.text,
+                        time: message.date
+                            ? new Date(message.date).toLocaleString()
+                            : '',
+                        attachment: message.attachment,
+                        isRead: message.is_read || false,
+                        status: isFromMe
+                            ? message.is_read
+                                ? 'read'
+                                : 'delivered'
+                            : 'received',
+                    };
+                })
+                .reverse(); // Reverse because API returns newest first
+
+            // Prepend new messages to the beginning (older messages)
+            messages.value = [...newMessages, ...messages.value];
+
+            // Update pagination info
+            nextPageUrl.value = response.data.next;
+            hasMoreMessages.value = !!response.data.next;
+
+            // Maintain scroll position
+            await nextTick();
+            if (messagesContainer.value) {
+                const newScrollHeight = messagesContainer.value.scrollHeight;
+                messagesContainer.value.scrollTop =
+                    newScrollHeight - currentScrollHeight;
+            }
+
+            console.log(
+                `Loaded ${newMessages.length} older messages. Total: ${messages.value.length}`,
+            );
+        } else {
+            hasMoreMessages.value = false;
+        }
+    } catch (error) {
+        console.error('Error loading more messages:', error);
+        hasMoreMessages.value = false;
+    } finally {
+        isLoadingMessages.value = false;
+    }
 }
 
 async function sendMessage() {
@@ -349,12 +983,8 @@ async function sendMessage() {
         messages.value.push(optimisticMessage);
         input.value = '';
 
-        // Scroll to bottom
-        await nextTick();
-        if (messagesContainer.value) {
-            messagesContainer.value.scrollTop =
-                messagesContainer.value.scrollHeight;
-        }
+        // Scroll to bottom smoothly
+        scrollToBottom(true);
 
         try {
             // Send message through WebSocket instead of API
@@ -415,12 +1045,8 @@ async function sendMessageViaAPI() {
         messages.value.push(optimisticMessage);
         input.value = '';
 
-        // Scroll to bottom
-        await nextTick();
-        if (messagesContainer.value) {
-            messagesContainer.value.scrollTop =
-                messagesContainer.value.scrollHeight;
-        }
+        // Scroll to bottom smoothly
+        scrollToBottom(true);
 
         try {
             const response = await api.post(
@@ -486,8 +1112,6 @@ function getConnectionStatusText() {
 }
 
 import { api, socketApi } from '../../api';
-
-import { onUnmounted, inject, onMounted } from 'vue';
 
 let realtimeSocket = null;
 const socketUrl = inject('socketUrl', 'ws://localhost:8000/ws/');
@@ -587,13 +1211,10 @@ function handleNewMessage(data) {
         if (!existingMessage) {
             messages.value.push(newMessage);
 
-            // Scroll to bottom for new messages
-            nextTick(() => {
-                if (messagesContainer.value) {
-                    messagesContainer.value.scrollTop =
-                        messagesContainer.value.scrollHeight;
-                }
-            });
+            // Scroll to bottom for new messages (only if auto-scroll is enabled or it's from me)
+            if (newMessage.fromMe || isAutoScrollEnabled.value) {
+                scrollToBottom();
+            }
         }
     }
 }
@@ -700,7 +1321,21 @@ onMounted(() => {
 
     // Setup message read observer
     setupMessageReadObserver();
+
+    // Load saved messages from localStorage
+    loadSavedMessages();
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', handleKeyboardShortcuts);
 });
+
+function handleKeyboardShortcuts(event) {
+    // Ctrl+S or Cmd+S to toggle saved messages panel
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        showSavedMessages.value = !showSavedMessages.value;
+    }
+}
 
 onUnmounted(() => {
     // Clean up when component unmounts
@@ -716,13 +1351,20 @@ onUnmounted(() => {
 
     // Cleanup message observer
     unobserveAllMessages();
+
+    // Remove keyboard shortcuts
+    document.removeEventListener('keydown', handleKeyboardShortcuts);
 });
 
 async function fetchChat() {
     try {
-        const response = await api.post(
-            '/chats/' + props.chatId + '/messages/',
+        isLoadingMessages.value = true;
+
+        // Get the first page of messages (most recent)
+        const response = await api.get(
+            `/chats/${props.chatId}/messages/?page=1`,
         );
+
         if (response && response.data) {
             messages.value = response.data.results
                 .map((message) => {
@@ -743,20 +1385,32 @@ async function fetchChat() {
                             : 'received',
                     };
                 })
-                .reverse();
-            // Scroll to bottom only if the latest message is upcoming (new)
-            await nextTick();
-            if (messagesContainer.value && messages.value.length) {
-                const lastMsg = messages.value[messages.value.length - 1];
-                // Example: if lastMsg.fromMe or lastMsg.isNew, scroll to bottom
-                if (lastMsg.fromMe || lastMsg.isNew) {
-                    messagesContainer.value.scrollTop =
-                        messagesContainer.value.scrollHeight;
-                }
+                .reverse(); // Reverse to show oldest first (chronological order)
+
+            // Initialize pagination state
+            nextPageUrl.value = response.data.next;
+            hasMoreMessages.value = !!response.data.next;
+            isAutoScrollEnabled.value = true;
+
+            // Always scroll to bottom when loading a new chat
+            scrollToBottom(true);
+
+            console.log(
+                `Loaded ${messages.value.length} messages for chat ${props.chatId}`,
+            );
+            console.log(`Has more messages: ${hasMoreMessages.value}`);
+            console.log(`Next page URL: ${nextPageUrl.value}`);
+
+            // Log the last message for debugging
+            const lastMessage = getLastMessage();
+            if (lastMessage) {
+                console.log('Last message:', lastMessage);
             }
         }
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching chat messages:', error);
+    } finally {
+        isLoadingMessages.value = false;
     }
 }
 
@@ -769,6 +1423,12 @@ watch(
                 await stopMonitoring();
             }
 
+            // Reset scroll states for new chat
+            isAutoScrollEnabled.value = true;
+            hasMoreMessages.value = true;
+            isLoadingMessages.value = false;
+            nextPageUrl.value = null;
+
             // Load messages for the new chat
             await fetchChat();
 
@@ -779,6 +1439,10 @@ watch(
         } else {
             // Clear messages when no chat is selected
             messages.value = [];
+            isAutoScrollEnabled.value = true;
+            hasMoreMessages.value = true;
+            isLoadingMessages.value = false;
+            nextPageUrl.value = null;
 
             // Stop monitoring
             if (isMonitoring.value) {
@@ -1035,13 +1699,16 @@ function unobserveAllMessages() {
     }
 }
 
-watch(messages, async () => {
-    await nextTick();
-    if (messagesContainer.value) {
-        messagesContainer.value.scrollTop =
-            messagesContainer.value.scrollHeight;
-    }
-});
+watch(
+    messages,
+    () => {
+        // Only auto-scroll if we're near the bottom or it's a new message from the current user
+        if (isAutoScrollEnabled.value) {
+            scrollToBottom();
+        }
+    },
+    { deep: true },
+);
 </script>
 
 <style scoped>

@@ -178,6 +178,10 @@ export default {
             no_favorites: 'No favorite chats found',
             no_archived: 'No archived chats found',
             no_folders: 'No organized folders found',
+            no_online_users: 'No online users found',
+            folders: 'Folders',
+            last_message_time: 'Last message at',
+            unread_messages: 'unread messages',
         },
     },
 };
